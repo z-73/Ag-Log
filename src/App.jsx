@@ -1,934 +1,1303 @@
 import React, { useState } from 'react';
 import {
+  Home,
   Sprout,
+  Wrench,
   Scissors,
-  Droplets,
-  Layers,
-  MapPin,
-  ClipboardList,
-  GitBranch,
-  Settings,
-  Wifi,
-  WifiOff,
+  Plus,
+  Check,
+  AlertTriangle,
   ShieldAlert,
   ShieldCheck,
-  Smartphone,
-  Monitor,
-  CheckCircle2,
+  Layers,
+  Grid,
   ArrowRight,
-  UserCheck,
-  Sparkles,
-  Zap,
+  Trash2,
 } from 'lucide-react';
 
 import {
   OPERATORS,
-  SUPPLIERS,
   CROPS,
-  APPROVED_INPUTS,
-  INITIAL_PATCHES,
-  INITIAL_NURSERY_BATCHES,
-  INITIAL_PLANTINGS,
-  INITIAL_INPUT_LOGS,
-  INITIAL_HARVESTS,
+  MAINTENANCE_INPUTS,
+  INITIAL_TRAYS,
+  INITIAL_FIELDS,
+  INITIAL_ACTIVITY_LOGS,
 } from './data/mockFarmData';
 
-import QuickLogModals from './components/QuickLogModals';
-import FarmMapView from './components/FarmMapView';
-import RegistersView from './components/RegistersView';
-import TraceabilityView from './components/TraceabilityView';
-import SettingsView from './components/SettingsView';
-
 export default function App() {
-  // Active Navigation Tab: 'hub' | 'map' | 'registers' | 'trace' | 'settings'
-  const [activeTab, setActiveTab] = useState('hub');
-  const [registerSubTab, setRegisterSubTab] = useState('harvest');
+  // 4 Core Tabs: 'home' | 'plant' | 'maintain' | 'harvest'
+  const [activeTab, setActiveTab] = useState('home');
 
-  // Lightweight Persistent Operator Quick-Selector
-  const [activeOperator, setActiveOperator] = useState(OPERATORS[0]);
+  // Active Operator (1-tap switcher)
+  const [operator, setOperator] = useState(OPERATORS[0]);
 
-  // Offline-first PWA status simulation
-  const [isOffline, setIsOffline] = useState(false);
-  const [queuedCount, setQueuedCount] = useState(0);
+  // Core State
+  const [fields, setFields] = useState(INITIAL_FIELDS);
+  const [trays, setTrays] = useState(INITIAL_TRAYS);
+  const [logs, setLogs] = useState(INITIAL_ACTIVITY_LOGS);
+  const [banner, setBanner] = useState(null);
 
-  // Desktop Phone Preview frame toggle (for testing mobile ergonomics on desktop web)
-  const [mobilePreviewMode, setMobilePreviewMode] = useState(false);
+  // Desktop Field Setup State (on Home tab)
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldCode, setNewFieldCode] = useState('');
 
-  // Interactive Farm State (in-memory for UX prototyping)
-  const [patches, setPatches] = useState(INITIAL_PATCHES);
-  const [crops, setCrops] = useState(CROPS);
-  const [approvedInputs, setApprovedInputs] = useState(APPROVED_INPUTS);
-  const [nurseryBatches, setNurseryBatches] = useState(INITIAL_NURSERY_BATCHES);
-  const [plantings, setPlantings] = useState(INITIAL_PLANTINGS);
-  const [inputLogs, setInputLogs] = useState(INITIAL_INPUT_LOGS);
-  const [harvests, setHarvests] = useState(INITIAL_HARVESTS);
+  // ==========================================
+  // PLANT TAB STATE
+  // ==========================================
+  // 'tray' (Sow Seedling Tray) | 'row' (Plant into Field Row)
+  const [plantTarget, setPlantTarget] = useState('row');
+  // If 'row': 'from-tray' vs 'direct'
+  const [rowPlantSource, setRowPlantSource] = useState('from-tray');
+  const [selectedTrayCode, setSelectedTrayCode] = useState(INITIAL_TRAYS[0].code);
+  const [selectedCropId, setSelectedCropId] = useState(CROPS[0].id);
+  const [trayCount, setTrayCount] = useState(4);
+  const [plantFieldId, setPlantFieldId] = useState(INITIAL_FIELDS[0].id);
+  const [plantRowId, setPlantRowId] = useState('PA-R05');
 
-  // Selected Harvest Batch for Traceback Engine
-  const [selectedTraceBatchId, setSelectedTraceBatchId] = useState(INITIAL_HARVESTS[0].id);
+  // ==========================================
+  // MAINTAIN TAB STATE
+  // ==========================================
+  const [maintFieldId, setMaintFieldId] = useState(INITIAL_FIELDS[0].id);
+  const [maintRowId, setMaintRowId] = useState('PA-R02');
+  const [selectedInputId, setSelectedInputId] = useState(MAINTENANCE_INPUTS[0].id);
 
-  // Active Quick-Log Modal ('harvest' | 'input' | 'planting' | 'nursery' | null)
-  const [activeModal, setActiveModal] = useState(null);
-  const [modalContext, setModalContext] = useState(null);
+  // ==========================================
+  // HARVEST TAB STATE
+  // ==========================================
+  const [harvFieldId, setHarvFieldId] = useState(INITIAL_FIELDS[0].id);
+  const [harvRowId, setHarvRowId] = useState('PA-R02');
+  const [harvQty, setHarvQty] = useState(25);
 
-  // Toast feedback banner
-  const [toast, setToast] = useState(null);
-
-  const showToast = (title, subtitle, tone = 'emerald') => {
-    setToast({ title, subtitle, tone });
-    if (isOffline) {
-      setQueuedCount((c) => c + 1);
-    }
+  const notify = (msg, sub = '') => {
+    setBanner({ msg, sub });
     setTimeout(() => {
-      setToast((current) => (current?.title === title ? null : current));
-    }, 4200);
+      setBanner((prev) => (prev?.msg === msg ? null : prev));
+    }, 3500);
   };
 
-  const openQuickModal = (type, context = null) => {
-    setModalContext(context);
-    setActiveModal(type);
-  };
-
-  // Handlers for logging actions
-  const handleLogHarvest = (newHarvest) => {
-    setHarvests((prev) => [newHarvest, ...prev]);
-    setSelectedTraceBatchId(newHarvest.id);
-    showToast(
-      `Harvest Batch Created: ${newHarvest.id}`,
-      `${newHarvest.quantity} ${newHarvest.unit} ${newHarvest.cropName} logged by ${newHarvest.operator}`,
-      'emerald'
-    );
-  };
-
-  const handleLogInput = (newInputLog) => {
-    setInputLogs((prev) => [newInputLog, ...prev]);
-    if (newInputLog.whpDays > 0) {
-      setPatches((prev) =>
-        prev.map((p) =>
-          p.id !== newInputLog.patchId
-            ? p
-            : {
-                ...p,
-                rows: p.rows.map((r) =>
-                  newInputLog.rowIds.includes(r.id) ? { ...r, status: 'WHP Locked' } : r
-                ),
-              }
-        )
-      );
-      showToast(
-        `Input Logged + ${newInputLog.whpDays}-Day WHP Lock Applied`,
-        `${newInputLog.productName} on ${newInputLog.patchName} (${newInputLog.rowCodes.join(', ')})`,
-        'amber'
-      );
-    } else {
-      showToast(
-        `Input Logged (0-Day WHP — Safe to Harvest)`,
-        `${newInputLog.productName} applied by ${newInputLog.operator}`,
-        'emerald'
-      );
+  // Helper to jump from Home row card directly into an action for that row
+  const jumpToRowAction = (tab, fieldId, rowId) => {
+    if (tab === 'plant') {
+      setPlantFieldId(fieldId);
+      setPlantRowId(rowId);
+      setPlantTarget('row');
+    } else if (tab === 'maintain') {
+      setMaintFieldId(fieldId);
+      setMaintRowId(rowId);
+    } else if (tab === 'harvest') {
+      setHarvFieldId(fieldId);
+      setHarvRowId(rowId);
     }
+    setActiveTab(tab);
   };
 
-  const handleLogPlanting = (newPlanting) => {
-    setPlantings((prev) => [newPlanting, ...prev]);
-    setPatches((prev) =>
-      prev.map((p) =>
-        p.id !== newPlanting.patchId
-          ? p
-          : {
-              ...p,
-              rows: p.rows.map((r) =>
-                newPlanting.rowIds.includes(r.id)
-                  ? { ...r, status: 'Growing', plantingId: newPlanting.id }
-                  : r
-              ),
-            }
-      )
-    );
-    if (newPlanting.nurseryBatchId && newPlanting.traysUsed > 0) {
-      setNurseryBatches((prev) =>
-        prev.map((nb) =>
-          nb.id === newPlanting.nurseryBatchId
-            ? {
-                ...nb,
-                traysRemaining: Math.max(0, nb.traysRemaining - newPlanting.traysUsed),
-                status:
-                  nb.traysRemaining - newPlanting.traysUsed <= 0
-                    ? 'Transplanted'
-                    : 'Ready for Field',
-              }
-            : nb
-        )
-      );
-    }
-    showToast(
-      `Field Planting Recorded: ${newPlanting.id}`,
-      `${newPlanting.cropName} (${newPlanting.variety}) assigned to ${newPlanting.patchName} ${newPlanting.rowCodes.join(', ')}`,
-      'teal'
-    );
+  // ==========================================
+  // HANDLERS: DESKTOP FIELD & ROW SETUP
+  // ==========================================
+  const handleAddField = (e) => {
+    e.preventDefault();
+    if (!newFieldName.trim()) return;
+    const id = (newFieldCode.trim() || `F${fields.length + 1}`).toUpperCase();
+    const newField = {
+      id,
+      name: newFieldName.trim(),
+      rows: [
+        { id: `${id}-R01`, code: 'R01', lengthM: 25, planting: null, whpLockedUntil: null, lastInput: null },
+        { id: `${id}-R02`, code: 'R02', lengthM: 25, planting: null, whpLockedUntil: null, lastInput: null },
+        { id: `${id}-R03`, code: 'R03', lengthM: 25, planting: null, whpLockedUntil: null, lastInput: null },
+      ],
+    };
+    setFields((prev) => [...prev, newField]);
+    setNewFieldName('');
+    setNewFieldCode('');
+    notify(`FIELD CREATED: ${newField.name}`, `Initialized with 3 rows (R01–R03)`);
   };
 
-  const handleLogNursery = (newBatch) => {
-    setNurseryBatches((prev) => [newBatch, ...prev]);
-    showToast(
-      `Nursery Batch Generated: ${newBatch.id}`,
-      `${newBatch.traysSown} trays (${newBatch.totalCells} cells) of ${newBatch.cropName} sown by ${newBatch.operator}`,
-      'stone'
-    );
-  };
-
-  const handleClearWhpLock = (patchId, rowId) => {
-    setPatches((prev) =>
-      prev.map((p) =>
-        p.id !== patchId
-          ? p
-          : {
-              ...p,
-              rows: p.rows.map((r) =>
-                r.id === rowId ? { ...r, status: 'Harvest Ready' } : r
-              ),
-            }
-      )
-    );
-    setInputLogs((prev) =>
-      prev.map((log) =>
-        log.patchId === patchId && log.rowIds.includes(rowId)
-          ? { ...log, whpActive: false }
-          : log
-      )
-    );
-    showToast(
-      'Withholding Period Cleared',
-      `Bed ${rowId} is now unlocked and cleared for SXC harvest.`,
-      'emerald'
-    );
-  };
-
-  const handleAddAllocation = (batchId, allocation) => {
-    setHarvests((prev) =>
-      prev.map((h) =>
-        h.id === batchId
-          ? { ...h, allocations: [...(h.allocations || []), allocation] }
-          : h
-      )
-    );
-    showToast(
-      `Sales Dispatch Allocated (${allocation.quantity} ${allocation.unit})`,
-      `Linked to ${allocation.channel} from Batch ${batchId}`,
-      'emerald'
-    );
-  };
-
-  const handleAddBedToPatch = (patchId) => {
-    setPatches((prev) =>
-      prev.map((p) => {
-        if (p.id !== patchId) return p;
-        const nextNum = p.rows.length + 1;
-        const code = `R0${nextNum}`;
+  const handleAddRowToField = (fieldId) => {
+    setFields((prev) =>
+      prev.map((f) => {
+        if (f.id !== fieldId) return f;
+        const nextNum = f.rows.length + 1;
+        const code = nextNum < 10 ? `R0${nextNum}` : `R${nextNum}`;
         return {
-          ...p,
+          ...f,
           rows: [
-            ...p.rows,
+            ...f.rows,
             {
-              id: `${p.id}-${code}`,
+              id: `${f.id}-${code}`,
               code,
-              number: nextNum,
               lengthM: 25,
-              widthM: 1.2,
-              alignment: p.orientation,
-              status: 'Prepped / Resting',
-              plantingId: null,
-              lastRotation: 'New Bed Establishment',
+              planting: null,
+              whpLockedUntil: null,
+              lastInput: null,
             },
           ],
         };
       })
     );
-    showToast('New Permanent Bed Added', `Added new bed to ${patchId}`, 'emerald');
+    notify(`ADDED ROW TO ${fieldId}`);
   };
 
-  const handleToggleInputStatus = (inputId, newStatus) => {
-    setApprovedInputs((prev) =>
-      prev.map((inp) =>
-        inp.id === inputId ? { ...inp, verificationStatus: newStatus } : inp
+  const handleClearRowCrop = (fieldId, rowId) => {
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id !== fieldId
+          ? f
+          : {
+              ...f,
+              rows: f.rows.map((r) =>
+                r.id === rowId ? { ...r, planting: null, whpLockedUntil: null } : r
+              ),
+            }
       )
     );
-    showToast('Input Compliance Status Updated', `Set verification status to ${newStatus}`, 'stone');
+    notify(`ROW ${rowId} CLEARED`, 'Ready for new planting');
   };
 
-  const handleAddCrop = (newCrop) => {
-    setCrops((prev) => [newCrop, ...prev]);
-    showToast(`Added Crop Variety: ${newCrop.name}`, `${newCrop.variety} (${newCrop.code})`, 'emerald');
+  // ==========================================
+  // HANDLER: PLANT (TRAY OR ROW)
+  // ==========================================
+  const handleConfirmPlant = () => {
+    const dateStamp = '1016';
+
+    if (plantTarget === 'tray') {
+      const crop = CROPS.find((c) => c.id === selectedCropId) || CROPS[0];
+      const seq = trays.filter((t) => t.cropId === crop.id).length + 1;
+      const newTrayCode = `TR-${dateStamp}-${crop.id}${seq}`;
+      const newTray = {
+        code: newTrayCode,
+        cropId: crop.id,
+        cropName: crop.name,
+        variety: crop.variety,
+        trays: trayCount,
+        cellsPerTray: 128,
+        sownDate: '2026-10-16',
+        operator,
+        status: 'Ready',
+      };
+      setTrays((prev) => [newTray, ...prev]);
+      setSelectedTrayCode(newTrayCode);
+      setLogs((prev) => [
+        {
+          id: newTrayCode,
+          type: 'PLANT-TRAY',
+          date: '2026-10-16',
+          location: 'Nursery',
+          crop: `${crop.name} (${crop.variety})`,
+          detail: `${trayCount} Trays Sown`,
+          linkedCode: `Tracking Code: ${newTrayCode}`,
+          operator,
+        },
+        ...prev,
+      ]);
+      notify(`SEEDLING TRAY LOGGED: ${newTrayCode}`, `${trayCount} trays of ${crop.name}`);
+      return;
+    }
+
+    // Otherwise planting into a Field Row
+    const field = fields.find((f) => f.id === plantFieldId) || fields[0];
+    const row = field.rows.find((r) => r.id === plantRowId) || field.rows[0];
+    const trayObj = trays.find((t) => t.code === selectedTrayCode);
+    const crop =
+      rowPlantSource === 'from-tray' && trayObj
+        ? CROPS.find((c) => c.id === trayObj.cropId) || CROPS[0]
+        : CROPS.find((c) => c.id === selectedCropId) || CROPS[0];
+
+    const trackingCode = `PL-${dateStamp}-${field.id}-${row.code}-${crop.id}`;
+    const sourceTrayCode =
+      rowPlantSource === 'from-tray' && trayObj ? trayObj.code : 'DIRECT-SEED';
+
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id !== field.id
+          ? f
+          : {
+              ...f,
+              rows: f.rows.map((r) =>
+                r.id !== row.id
+                  ? r
+                  : {
+                      ...r,
+                      planting: {
+                        trackingCode,
+                        sourceTrayCode,
+                        cropId: crop.id,
+                        cropName: crop.name,
+                        variety: crop.variety,
+                        unit: crop.unit,
+                        plantedDate: '2026-10-16',
+                      },
+                      whpLockedUntil: null,
+                    }
+              ),
+            }
+      )
+    );
+
+    setLogs((prev) => [
+      {
+        id: trackingCode,
+        type: 'PLANT-ROW',
+        date: '2026-10-16',
+        location: `${field.name} • ${row.code}`,
+        crop: `${crop.name} (${crop.variety})`,
+        detail:
+          sourceTrayCode === 'DIRECT-SEED'
+            ? 'Direct Sown in Row'
+            : `Transplanted from Tray ${sourceTrayCode}`,
+        linkedCode: `${trackingCode} ← ${sourceTrayCode}`,
+        operator,
+      },
+      ...prev,
+    ]);
+
+    notify(
+      `ROW PLANTED: ${trackingCode}`,
+      `${crop.name} in ${field.name} ${row.code} (Source: ${sourceTrayCode})`
+    );
   };
 
-  const handleResetPrototypeData = () => {
-    setPatches(INITIAL_PATCHES);
-    setCrops(CROPS);
-    setApprovedInputs(APPROVED_INPUTS);
-    setNurseryBatches(INITIAL_NURSERY_BATCHES);
-    setPlantings(INITIAL_PLANTINGS);
-    setInputLogs(INITIAL_INPUT_LOGS);
-    setHarvests(INITIAL_HARVESTS);
-    setQueuedCount(0);
-    showToast('Prototype State Reset', 'Restored initial Mt Cotton Organic demo records.', 'stone');
+  // ==========================================
+  // HANDLER: MAINTAIN (SPRAY / FEED / WEED)
+  // ==========================================
+  const handleConfirmMaintain = () => {
+    const field = fields.find((f) => f.id === maintFieldId) || fields[0];
+    const row = field.rows.find((r) => r.id === maintRowId) || field.rows[0];
+    const input =
+      MAINTENANCE_INPUTS.find((i) => i.id === selectedInputId) || MAINTENANCE_INPUTS[0];
+
+    let lockDate = null;
+    if (input.whpDays > 0) {
+      const d = new Date('2026-10-16T08:00:00');
+      d.setDate(d.getDate() + input.whpDays);
+      lockDate = d.toISOString().split('T')[0];
+    }
+
+    setFields((prev) =>
+      prev.map((f) =>
+        f.id !== field.id
+          ? f
+          : {
+              ...f,
+              rows: f.rows.map((r) =>
+                r.id !== row.id
+                  ? r
+                  : {
+                      ...r,
+                      whpLockedUntil: lockDate || r.whpLockedUntil,
+                      lastInput: `${input.name} (${input.whpDays}d WHP)`,
+                    }
+              ),
+            }
+      )
+    );
+
+    const cropLabel = row.planting
+      ? `${row.planting.cropName} (${row.planting.variety})`
+      : 'Unplanted Bed';
+    const codeLabel = row.planting ? row.planting.trackingCode : 'BED-PREP';
+
+    setLogs((prev) => [
+      {
+        id: `MT-1016-${field.id}-${row.code}`,
+        type: 'MAINTAIN',
+        date: '2026-10-16',
+        location: `${field.name} • ${row.code}`,
+        crop: cropLabel,
+        detail: `${input.name} (${input.rate})${
+          lockDate ? ` • WHP LOCK UNTIL ${lockDate}` : ' • 0d WHP'
+        }`,
+        linkedCode: codeLabel,
+        operator,
+      },
+      ...prev,
+    ]);
+
+    notify(
+      `MAINTENANCE LOGGED: ${field.id} ${row.code}`,
+      `${input.name} applied to ${cropLabel} [${codeLabel}]`
+    );
   };
 
-  // Compute active WHP locked beds for dashboard banner
-  const lockedBeds = [];
-  patches.forEach((p) => {
-    p.rows.forEach((r) => {
-      const whpLog = inputLogs.find((l) => l.whpActive && l.rowIds.includes(r.id));
-      if (r.status === 'WHP Locked' || whpLog) {
-        const pl = plantings.find((item) => item.id === r.plantingId);
-        lockedBeds.push({
-          patchId: p.id,
-          patchName: p.name,
-          rowId: r.id,
-          rowCode: r.code,
-          cropName: pl?.cropName || 'Active Bed',
-          productName: whpLog?.productName || 'Restricted Input',
-          safeDate: whpLog?.safeHarvestDate || '2026-10-18',
-        });
-      }
-    });
-  });
+  // ==========================================
+  // HANDLER: HARVEST
+  // ==========================================
+  const handleConfirmHarvest = () => {
+    const field = fields.find((f) => f.id === harvFieldId) || fields[0];
+    const row = field.rows.find((r) => r.id === harvRowId) || field.rows[0];
+    if (!row.planting || row.whpLockedUntil) return;
 
-  // Compute ready-to-harvest beds
-  const readyBeds = [];
-  patches.forEach((p) => {
-    p.rows.forEach((r) => {
-      if (r.status === 'Harvest Ready' && r.plantingId) {
-        const pl = plantings.find((item) => item.id === r.plantingId);
-        if (pl) {
-          readyBeds.push({
-            patchId: p.id,
-            patchName: p.name,
-            patchCode: p.code,
-            rowId: r.id,
-            rowCode: r.code,
-            planting: pl,
-          });
-        }
-      }
-    });
-  });
+    const harvestCode = `HV-1016-${field.id}-${row.code}-${row.planting.cropId}`;
 
-  const navItems = [
-    { id: 'hub', label: 'Field Hub', icon: Zap },
-    { id: 'map', label: 'Farm Map', icon: MapPin },
-    { id: 'registers', label: 'Registers', icon: ClipboardList },
-    { id: 'trace', label: 'SXC Trace', icon: GitBranch },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    setLogs((prev) => [
+      {
+        id: harvestCode,
+        type: 'HARVEST',
+        date: '2026-10-16',
+        location: `${field.name} • ${row.code}`,
+        crop: `${row.planting.cropName} (${row.planting.variety})`,
+        detail: `${harvQty} ${row.planting.unit} harvested`,
+        linkedCode: `${harvestCode} ← ${row.planting.trackingCode} ← ${row.planting.sourceTrayCode}`,
+        operator,
+      },
+      ...prev,
+    ]);
+
+    notify(
+      `HARVEST LOGGED: ${harvestCode}`,
+      `${harvQty} ${row.planting.unit} ${row.planting.cropName} from ${field.id} ${row.code}`
+    );
+  };
+
+  // Derived selections for Maintain & Harvest views
+  const currentPlantField = fields.find((f) => f.id === plantFieldId) || fields[0];
+  const currentPlantRow =
+    currentPlantField.rows.find((r) => r.id === plantRowId) || currentPlantField.rows[0];
+
+  const currentMaintField = fields.find((f) => f.id === maintFieldId) || fields[0];
+  const currentMaintRow =
+    currentMaintField.rows.find((r) => r.id === maintRowId) || currentMaintField.rows[0];
+
+  const currentHarvField = fields.find((f) => f.id === harvFieldId) || fields[0];
+  const currentHarvRow =
+    currentHarvField.rows.find((r) => r.id === harvRowId) || currentHarvField.rows[0];
+
+  const navTabs = [
+    { id: 'home', label: 'HOME', icon: Home },
+    { id: 'plant', label: 'PLANT', icon: Sprout },
+    { id: 'maintain', label: 'MAINTAIN', icon: Wrench },
+    { id: 'harvest', label: 'HARVEST', icon: Scissors },
   ];
 
   return (
-    <div
-      className={`min-h-screen bg-stone-100 text-stone-900 flex flex-col ${
-        mobilePreviewMode ? 'items-center py-6 bg-stone-800' : ''
-      }`}
-    >
-      {/* Wrapper that can optionally constrain to a 420px Mobile Handset Frame on desktop */}
-      <div
-        className={`w-full flex-1 flex flex-col bg-stone-100 ${
-          mobilePreviewMode
-            ? 'max-w-[420px] rounded-[40px] border-[10px] border-stone-950 shadow-2xl overflow-hidden max-h-[880px]'
-            : ''
-        }`}
-      >
-        {/* ============================================================
-            PERSISTENT TOP HEADER & SINGLE-TAP OPERATOR QUICK-SELECTOR
-           ============================================================ */}
-        <header className="sticky top-0 z-30 bg-emerald-950 text-white shadow-md border-b border-emerald-800">
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-col gap-2">
-            {/* Top Row: Farm Title + Offline PWA Toggle + Desktop Mobile Frame Toggle */}
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded-xl bg-emerald-500 text-emerald-950 flex items-center justify-center font-black text-base shrink-0 shadow-xs">
-                  AG
-                </div>
-                <div className="truncate">
-                  <div className="flex items-center gap-2">
-                    <span className="font-extrabold text-sm sm:text-base tracking-tight">
-                      Mt Cotton Organic
-                    </span>
-                    <span className="hidden sm:inline-block text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-800/90 text-emerald-200 border border-emerald-700">
-                      SXC Cert #14082
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-emerald-300/90 truncate">
-                    T & A Palmer • Local-First Compliance Log
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                {/* Offline / Online Sync Simulator Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isOffline) {
-                      setIsOffline(false);
-                      setQueuedCount(0);
-                      showToast(
-                        'Network Restored — Auto-Synced!',
-                        'All queued local IndexedDB logs synchronized with central database.',
-                        'emerald'
-                      );
-                    } else {
-                      setIsOffline(true);
-                      showToast(
-                        'Offline Field Mode Active',
-                        'Logs will cache locally in IndexedDB and sync automatically when back in shed Wi-Fi.',
-                        'amber'
-                      );
-                    }
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition ${
-                    isOffline
-                      ? 'bg-amber-500 text-stone-950 border-amber-300'
-                      : 'bg-emerald-900/90 text-emerald-200 border-emerald-700 hover:bg-emerald-800'
-                  }`}
-                  title="Click to simulate Offline vs Online field sync"
-                >
-                  {isOffline ? (
-                    <>
-                      <WifiOff className="w-3.5 h-3.5" />
-                      <span>Offline ({queuedCount} Queued)</span>
-                    </>
-                  ) : (
-                    <>
-                      <Wifi className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="hidden xs:inline">Local-First</span>
-                      <span>Synced</span>
-                    </>
-                  )}
-                </button>
-
-                {/* Desktop-only toggle to preview Mobile Handset Viewport */}
-                <button
-                  type="button"
-                  onClick={() => setMobilePreviewMode((m) => !m)}
-                  className="hidden lg:flex px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold items-center gap-1.5 border border-white/15 transition"
-                  title="Switch between Full Web View and Mobile Handset Frame"
-                >
-                  {mobilePreviewMode ? (
-                    <>
-                      <Monitor className="w-3.5 h-3.5 text-emerald-300" />
-                      <span>Exit Phone Frame</span>
-                    </>
-                  ) : (
-                    <>
-                      <Smartphone className="w-3.5 h-3.5 text-emerald-300" />
-                      <span>Mobile Frame</span>
-                    </>
-                  )}
-                </button>
-              </div>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
+      {/* ============================================================
+          TOP BAR: BRAND + 1-TAP OPERATOR SWITCHER + DESKTOP NAV
+         ============================================================ */}
+      <header className="sticky top-0 z-30 bg-zinc-950 border-b border-zinc-800">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-2">
+          {/* Brand */}
+          <div className="flex items-center gap-3">
+            <div className="px-2.5 py-1 bg-emerald-500 text-zinc-950 font-mono font-black text-xs tracking-wider">
+              AG-LOG
             </div>
-
-            {/* Bottom Row of Header: Persistent 1-Tap Operator Quick-Selector */}
-            <div className="flex items-center justify-between gap-2 pt-1 border-t border-emerald-900/80">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300 shrink-0 flex items-center gap-1">
-                <UserCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Active Operator:</span>
-              </span>
-
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 flex-1 justify-end">
-                {OPERATORS.map((op) => {
-                  const isActive = activeOperator.id === op.id;
-                  return (
-                    <button
-                      key={op.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveOperator(op);
-                        showToast(
-                          `Operator Switched: ${op.name}`,
-                          `All field logs & signatures now tagged as ${op.name} (${op.role})`,
-                          'stone'
-                        );
-                      }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition flex items-center gap-1.5 shrink-0 ${
-                        isActive
-                          ? 'bg-white text-emerald-950 ring-2 ring-emerald-400 shadow-xs'
-                          : 'bg-emerald-900/60 text-emerald-200 hover:bg-emerald-800/70'
-                      }`}
-                    >
-                      <span
-                        className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center text-white ${op.color}`}
-                      >
-                        {op.initials}
-                      </span>
-                      <span>{op.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <span className="hidden sm:inline text-xs font-mono uppercase tracking-widest text-zinc-400">
+              MT COTTON ORGANIC
+            </span>
           </div>
-        </header>
 
-        {/* Live Toast Feedback Banner */}
-        {toast && (
-          <div className="fixed bottom-20 sm:bottom-6 right-4 left-4 sm:left-auto sm:w-96 z-50 animate-in fade-in slide-in-from-bottom-3">
-            <div
-              className={`p-4 rounded-2xl shadow-2xl border-2 flex items-start gap-3 ${
-                toast.tone === 'amber'
-                  ? 'bg-amber-950 text-white border-amber-400'
-                  : toast.tone === 'teal'
-                  ? 'bg-teal-950 text-white border-teal-400'
-                  : toast.tone === 'stone'
-                  ? 'bg-stone-900 text-white border-stone-600'
-                  : 'bg-emerald-950 text-white border-emerald-400'
-              }`}
-            >
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <div className="text-xs space-y-0.5">
-                <div className="font-extrabold text-sm">{toast.title}</div>
-                <div className="text-stone-200">{toast.subtitle}</div>
+          {/* Desktop Primary Tabs */}
+          <nav className="hidden md:flex items-center border border-zinc-800 bg-zinc-900">
+            {navTabs.map((t) => {
+              const Icon = t.icon;
+              const active = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setActiveTab(t.id)}
+                  className={`px-5 h-10 text-xs font-mono font-bold tracking-wider flex items-center gap-2 border-r border-zinc-800 last:border-r-0 transition ${
+                    active
+                      ? 'bg-emerald-500 text-zinc-950'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{t.label}</span>
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* 1-Tap Operator Selector */}
+          <div className="flex items-center border border-zinc-800 bg-zinc-900">
+            {OPERATORS.map((op) => (
+              <button
+                key={op}
+                onClick={() => setOperator(op)}
+                className={`px-2.5 sm:px-3 h-9 text-xs font-mono font-bold uppercase border-r border-zinc-800 last:border-r-0 transition ${
+                  operator === op
+                    ? 'bg-zinc-100 text-zinc-950'
+                    : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                {op}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      {/* Instant Feedback Strip */}
+      {banner && (
+        <div className="bg-emerald-500 text-zinc-950 px-4 py-2.5 border-b border-emerald-400 font-mono text-xs flex items-center justify-between max-w-6xl w-full mx-auto">
+          <div>
+            <strong className="font-black mr-2">✓ {banner.msg}</strong>
+            <span>{banner.sub}</span>
+          </div>
+          <button onClick={() => setBanner(null)} className="font-bold underline ml-4">
+            OK
+          </button>
+        </div>
+      )}
+
+      {/* ============================================================
+          MAIN CONTENT AREA
+         ============================================================ */}
+      <main className="max-w-6xl w-full mx-auto flex-1 px-3 sm:px-6 pt-4 pb-24 md:pb-12">
+        {/* ============================================================
+            1. HOME TAB
+            - Mobile: Fast 3-button launcher + Active Rows Status + Recent Log
+            - Desktop: Full Field & Row Setup Builder + Live Row Status
+           ============================================================ */}
+        {activeTab === 'home' && (
+          <div className="space-y-6">
+            {/* Mobile Quick Launcher */}
+            <div className="grid grid-cols-3 gap-2 md:hidden">
+              <button
+                onClick={() => setActiveTab('plant')}
+                className="p-4 bg-zinc-900 border border-zinc-700 active:bg-emerald-500 active:text-zinc-950 text-left flex flex-col justify-between h-24"
+              >
+                <Sprout className="w-5 h-5 text-emerald-400" />
+                <span className="font-mono font-bold text-xs tracking-wider">1. PLANT</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('maintain')}
+                className="p-4 bg-zinc-900 border border-zinc-700 active:bg-amber-500 active:text-zinc-950 text-left flex flex-col justify-between h-24"
+              >
+                <Wrench className="w-5 h-5 text-amber-400" />
+                <span className="font-mono font-bold text-xs tracking-wider">2. MAINTAIN</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('harvest')}
+                className="p-4 bg-zinc-900 border border-zinc-700 active:bg-emerald-500 active:text-zinc-950 text-left flex flex-col justify-between h-24"
+              >
+                <Scissors className="w-5 h-5 text-emerald-400" />
+                <span className="font-mono font-bold text-xs tracking-wider">3. HARVEST</span>
+              </button>
+            </div>
+
+            {/* DESKTOP FIELD & ROW SETUP HEADER */}
+            <div className="hidden md:flex items-end justify-between bg-zinc-900 border border-zinc-800 p-4">
+              <div>
+                <div className="text-xs font-mono uppercase tracking-widest text-emerald-400">
+                  DESKTOP FIELD & ROW CONFIGURATION
+                </div>
+                <h1 className="text-lg font-bold text-zinc-100 mt-0.5">
+                  Fields, Rows & Active Crop Tracking
+                </h1>
+              </div>
+
+              {/* Add New Field Form on Desktop */}
+              <form onSubmit={handleAddField} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newFieldName}
+                  onChange={(e) => setNewFieldName(e.target.value)}
+                  placeholder="New Field Name (e.g. Patch C)"
+                  className="h-10 px-3 bg-zinc-950 border border-zinc-700 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none"
+                />
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={newFieldCode}
+                  onChange={(e) => setNewFieldCode(e.target.value.toUpperCase())}
+                  placeholder="Code (PC)"
+                  className="h-10 w-24 px-3 bg-zinc-950 border border-zinc-700 text-sm font-mono uppercase text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none"
+                />
+                <button
+                  type="submit"
+                  className="h-10 px-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-bold text-xs uppercase flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Field</span>
+                </button>
+              </form>
+            </div>
+
+            {/* FIELDS & ROWS OVERVIEW (Works on both Desktop & Mobile) */}
+            <div className="space-y-4">
+              {fields.map((field) => (
+                <div key={field.id} className="bg-zinc-900 border border-zinc-800">
+                  {/* Field Bar */}
+                  <div className="px-4 py-3 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className="px-2 py-0.5 bg-zinc-800 text-zinc-200 font-mono text-xs font-bold">
+                        {field.id}
+                      </span>
+                      <h2 className="font-bold text-sm sm:text-base text-zinc-100">
+                        {field.name}
+                      </h2>
+                    </div>
+
+                    <button
+                      onClick={() => handleAddRowToField(field.id)}
+                      className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-mono text-xs font-bold flex items-center gap-1"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>ADD ROW</span>
+                    </button>
+                  </div>
+
+                  {/* Rows List */}
+                  <div className="divide-y divide-zinc-800">
+                    {field.rows.map((row) => {
+                      const p = row.planting;
+                      const locked = Boolean(row.whpLockedUntil);
+                      return (
+                        <div
+                          key={row.id}
+                          className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-zinc-800/40"
+                        >
+                          <div className="flex items-start sm:items-center gap-3 min-w-0">
+                            <span
+                              className={`w-12 h-9 flex items-center justify-center font-mono font-bold text-xs shrink-0 border ${
+                                locked
+                                  ? 'bg-red-950 border-red-600 text-red-200'
+                                  : p
+                                  ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
+                                  : 'bg-zinc-950 border-zinc-800 text-zinc-500'
+                              }`}
+                            >
+                              {row.code}
+                            </span>
+
+                            {p ? (
+                              <div className="min-w-0">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-bold text-sm text-zinc-100">
+                                    {p.cropName} ({p.variety})
+                                  </span>
+                                  {locked && (
+                                    <span className="px-2 py-0.5 bg-red-600 text-white font-mono text-[11px] font-bold">
+                                      WHP LOCK UNTIL {row.whpLockedUntil}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="font-mono text-xs text-zinc-400 truncate">
+                                  Code: <span className="text-zinc-200">{p.trackingCode}</span> •
+                                  Source: {p.sourceTrayCode}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs font-mono text-zinc-500">
+                                EMPTY ROW ({row.lengthM}m) — READY TO PLANT
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Quick Row Actions */}
+                          <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                            {!p ? (
+                              <button
+                                onClick={() => jumpToRowAction('plant', field.id, row.id)}
+                                className="px-3 py-1.5 bg-emerald-500 text-zinc-950 font-mono text-xs font-bold uppercase"
+                              >
+                                + PLANT
+                              </button>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => jumpToRowAction('maintain', field.id, row.id)}
+                                  className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-amber-300 font-mono text-xs font-bold uppercase"
+                                >
+                                  SPRAY/FEED
+                                </button>
+                                <button
+                                  onClick={() => jumpToRowAction('harvest', field.id, row.id)}
+                                  className={`px-2.5 py-1.5 font-mono text-xs font-bold uppercase border ${
+                                    locked
+                                      ? 'bg-red-950 border-red-800 text-red-300'
+                                      : 'bg-emerald-500 border-emerald-500 text-zinc-950'
+                                  }`}
+                                >
+                                  {locked ? 'LOCKED' : 'HARVEST'}
+                                </button>
+                                <button
+                                  onClick={() => handleClearRowCrop(field.id, row.id)}
+                                  className="p-1.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 hover:text-zinc-300"
+                                  title="Clear finished crop from row"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Active Seedling Trays + Recent Log */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Nursery Seedling Trays */}
+              <div className="bg-zinc-900 border border-zinc-800">
+                <div className="px-4 py-3 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    ACTIVE SEEDLING TRAYS ({trays.length})
+                  </span>
+                  <button
+                    onClick={() => {
+                      setPlantTarget('tray');
+                      setActiveTab('plant');
+                    }}
+                    className="font-mono text-xs font-bold text-emerald-400 hover:underline"
+                  >
+                    + SOW TRAY
+                  </button>
+                </div>
+                <div className="divide-y divide-zinc-800">
+                  {trays.map((t) => (
+                    <div key={t.code} className="p-3 px-4 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="font-mono font-bold text-emerald-400 mr-2">
+                          {t.code}
+                        </span>
+                        <strong className="text-zinc-100">
+                          {t.cropName} ({t.variety})
+                        </strong>
+                        <div className="text-zinc-500 font-mono mt-0.5">
+                          {t.trays} Trays • Sown {t.sownDate} by {t.operator}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSelectedTrayCode(t.code);
+                          setPlantTarget('row');
+                          setRowPlantSource('from-tray');
+                          setActiveTab('plant');
+                        }}
+                        className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-mono font-bold text-zinc-200"
+                      >
+                        PLANT TO ROW →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recent Traceability Log */}
+              <div className="bg-zinc-900 border border-zinc-800">
+                <div className="px-4 py-3 bg-zinc-950 border-b border-zinc-800">
+                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">
+                    RECENT LOGS & TRACKING CODES
+                  </span>
+                </div>
+                <div className="divide-y divide-zinc-800 max-h-72 overflow-y-auto">
+                  {logs.map((l, idx) => (
+                    <div key={idx} className="p-3 px-4 space-y-1 text-xs">
+                      <div className="flex items-center justify-between font-mono">
+                        <span
+                          className={`px-1.5 py-0.5 font-bold text-[10px] ${
+                            l.type === 'HARVEST'
+                              ? 'bg-emerald-500 text-zinc-950'
+                              : l.type === 'MAINTAIN'
+                              ? 'bg-amber-500 text-zinc-950'
+                              : 'bg-zinc-200 text-zinc-950'
+                          }`}
+                        >
+                          {l.type}
+                        </span>
+                        <span className="text-zinc-500">
+                          {l.date} • {l.operator}
+                        </span>
+                      </div>
+                      <div className="font-bold text-zinc-100">
+                        {l.location} — {l.crop}
+                      </div>
+                      <div className="text-zinc-400">{l.detail}</div>
+                      <div className="font-mono text-[11px] text-emerald-400">{l.linkedCode}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {/* ============================================================
-            MAIN WORKSPACE (Desktop Horizontal Nav + Responsive Content)
+            2. PLANT TAB (EITHER IN A FIELD ROW OR A SEEDLING TRAY)
            ============================================================ */}
-        <div className="max-w-7xl w-full mx-auto flex-1 px-3 sm:px-6 pt-4 pb-24 md:pb-10 space-y-5">
-          {/* Desktop / Tablet Top Navigation Bar (Hidden on small phones or inside Mobile Preview Frame) */}
-          {!mobilePreviewMode && (
-            <nav className="hidden md:flex items-center justify-between bg-white p-2 rounded-2xl border border-stone-200 shadow-xs">
-              <div className="flex items-center gap-1.5">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const active = activeTab === item.id;
-                  return (
+        {activeTab === 'plant' && (
+          <div className="max-w-xl mx-auto bg-zinc-900 border border-zinc-800 p-4 sm:p-6 space-y-6">
+            <div className="border-b border-zinc-800 pb-3 flex items-center justify-between">
+              <h1 className="font-mono text-base font-bold uppercase tracking-wider text-emerald-400">
+                PLANTING LOG
+              </h1>
+              <span className="font-mono text-xs text-zinc-400">OPERATOR: {operator}</span>
+            </div>
+
+            {/* Step 1: Where are we planting? */}
+            <div>
+              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                1. WHERE ARE YOU PLANTING?
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPlantTarget('row')}
+                  className={`touch-target p-3.5 font-mono text-xs sm:text-sm font-bold uppercase border text-left flex items-center justify-between ${
+                    plantTarget === 'row'
+                      ? 'bg-emerald-500 text-zinc-950 border-emerald-400'
+                      : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                  }`}
+                >
+                  <span>FIELD ROW</span>
+                  <Grid className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlantTarget('tray')}
+                  className={`touch-target p-3.5 font-mono text-xs sm:text-sm font-bold uppercase border text-left flex items-center justify-between ${
+                    plantTarget === 'tray'
+                      ? 'bg-emerald-500 text-zinc-950 border-emerald-400'
+                      : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                  }`}
+                >
+                  <span>SEEDLING TRAY</span>
+                  <Layers className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* FLOW A: SOWING A SEEDLING TRAY */}
+            {plantTarget === 'tray' && (
+              <>
+                <div>
+                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                    2. SELECT CROP
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {CROPS.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => setSelectedCropId(c.id)}
+                        className={`touch-target p-3 border text-left ${
+                          selectedCropId === c.id
+                            ? 'bg-zinc-100 text-zinc-950 border-white font-bold'
+                            : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                        }`}
+                      >
+                        <div className="text-sm font-bold">{c.name}</div>
+                        <div className="text-[11px] opacity-75 truncate">{c.variety}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                    3. HOW MANY TRAYS?
+                  </label>
+                  <div className="flex items-center gap-2">
                     <button
-                      key={item.id}
-                      onClick={() => setActiveTab(item.id)}
-                      className={`touch-target px-4 py-2.5 rounded-xl font-bold text-sm flex items-center gap-2 transition ${
-                        active
-                          ? 'bg-emerald-900 text-white shadow-xs'
-                          : 'text-stone-700 hover:bg-stone-100'
+                      type="button"
+                      onClick={() => setTrayCount((n) => Math.max(1, n - 1))}
+                      className="touch-target px-5 bg-zinc-950 border border-zinc-700 font-mono text-lg font-bold"
+                    >
+                      -1
+                    </button>
+                    <div className="touch-target flex-1 bg-zinc-950 border border-zinc-700 flex items-center justify-center font-mono text-xl font-black">
+                      {trayCount} TRAYS
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTrayCount((n) => n + 1)}
+                      className="touch-target px-5 bg-zinc-950 border border-zinc-700 font-mono text-lg font-bold"
+                    >
+                      +1
+                    </button>
+                  </div>
+                </div>
+
+                {/* Auto-generated Tracking Code Box */}
+                <div className="p-4 bg-zinc-950 border border-emerald-500/60 flex items-center justify-between">
+                  <span className="font-mono text-xs text-zinc-400">
+                    AUTO TRACKING CODE:
+                  </span>
+                  <span className="font-mono text-base font-black text-emerald-400">
+                    TR-1016-{selectedCropId}
+                    {trays.filter((t) => t.cropId === selectedCropId).length + 1}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmPlant}
+                  className="touch-target w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+                >
+                  CREATE SEEDLING TRAY & CODE
+                </button>
+              </>
+            )}
+
+            {/* FLOW B: PLANTING INTO A FIELD ROW */}
+            {plantTarget === 'row' && (
+              <>
+                {/* Select Field & Row */}
+                <div>
+                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                    2. SELECT FIELD & ROW
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 mb-2">
+                    {fields.map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => {
+                          setPlantFieldId(f.id);
+                          setPlantRowId(f.rows[0]?.id);
+                        }}
+                        className={`touch-target p-2.5 font-mono text-xs font-bold border ${
+                          plantFieldId === f.id
+                            ? 'bg-zinc-100 text-zinc-950 border-white'
+                            : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                        }`}
+                      >
+                        {f.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-5 gap-2">
+                    {currentPlantField.rows.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        onClick={() => setPlantRowId(r.id)}
+                        className={`touch-target p-2 font-mono text-xs font-bold border flex flex-col items-center justify-center ${
+                          plantRowId === r.id
+                            ? 'bg-emerald-500 text-zinc-950 border-emerald-400'
+                            : r.planting
+                            ? 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                            : 'bg-zinc-950 text-emerald-400 border-emerald-900'
+                        }`}
+                      >
+                        <span>{r.code}</span>
+                        <span className="text-[10px] font-normal truncate max-w-full">
+                          {r.planting ? r.planting.cropName : 'Empty'}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Source: From Seedling Tray vs Direct Seed */}
+                <div>
+                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                    3. PLANTING SOURCE
+                  </label>
+                  <div className="grid grid-cols-2 gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => setRowPlantSource('from-tray')}
+                      className={`touch-target p-2.5 font-mono text-xs font-bold border ${
+                        rowPlantSource === 'from-tray'
+                          ? 'bg-zinc-100 text-zinc-950 border-white'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-800'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      FROM SEEDLING TRAY
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRowPlantSource('direct')}
+                      className={`touch-target p-2.5 font-mono text-xs font-bold border ${
+                        rowPlantSource === 'direct'
+                          ? 'bg-zinc-100 text-zinc-950 border-white'
+                          : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                      }`}
+                    >
+                      DIRECT SEED
+                    </button>
+                  </div>
+
+                  {rowPlantSource === 'from-tray' ? (
+                    <div className="space-y-2">
+                      {trays.map((t) => (
+                        <button
+                          key={t.code}
+                          type="button"
+                          onClick={() => setSelectedTrayCode(t.code)}
+                          className={`touch-target w-full p-3 border text-left flex items-center justify-between ${
+                            selectedTrayCode === t.code
+                              ? 'bg-zinc-800 border-emerald-500 text-zinc-100'
+                              : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                          }`}
+                        >
+                          <div>
+                            <span className="font-mono font-bold text-emerald-400 mr-2">
+                              {t.code}
+                            </span>
+                            <span className="font-bold text-sm text-zinc-100">
+                              {t.cropName} ({t.variety})
+                            </span>
+                          </div>
+                          <span className="font-mono text-xs">{t.trays} trays</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {CROPS.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => setSelectedCropId(c.id)}
+                          className={`touch-target p-3 border text-left ${
+                            selectedCropId === c.id
+                              ? 'bg-zinc-100 text-zinc-950 border-white font-bold'
+                              : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                          }`}
+                        >
+                          <div className="text-sm font-bold">{c.name}</div>
+                          <div className="text-[11px] opacity-75">{c.variety}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Generated Row Tracking Code Preview */}
+                <div className="p-4 bg-zinc-950 border border-emerald-500/60 flex items-center justify-between">
+                  <span className="font-mono text-xs text-zinc-400">ROW TRACKING CODE:</span>
+                  <span className="font-mono text-sm font-black text-emerald-400">
+                    PL-1016-{currentPlantField.id}-{currentPlantRow?.code}-
+                    {rowPlantSource === 'from-tray'
+                      ? trays.find((t) => t.code === selectedTrayCode)?.cropId || 'CRP'
+                      : selectedCropId}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleConfirmPlant}
+                  className="touch-target w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+                >
+                  PLANT INTO {currentPlantField.id} • {currentPlantRow?.code}
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ============================================================
+            3. MAINTAIN TAB (SELECT ROW -> APP KNOWS WHAT IS IN THERE)
+           ============================================================ */}
+        {activeTab === 'maintain' && (
+          <div className="max-w-xl mx-auto bg-zinc-900 border border-zinc-800 p-4 sm:p-6 space-y-6">
+            <div className="border-b border-zinc-800 pb-3 flex items-center justify-between">
+              <h1 className="font-mono text-base font-bold uppercase tracking-wider text-amber-400">
+                MAINTENANCE & SPRAY LOG
+              </h1>
+              <span className="font-mono text-xs text-zinc-400">OPERATOR: {operator}</span>
+            </div>
+
+            {/* Step 1: Select Field & Row */}
+            <div>
+              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                1. SELECT FIELD & ROW
+              </label>
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                {fields.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => {
+                      setMaintFieldId(f.id);
+                      setMaintRowId(f.rows[0]?.id);
+                    }}
+                    className={`touch-target p-2.5 font-mono text-xs font-bold border ${
+                      maintFieldId === f.id
+                        ? 'bg-zinc-100 text-zinc-950 border-white'
+                        : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                    }`}
+                  >
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-5 gap-2">
+                {currentMaintField.rows.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setMaintRowId(r.id)}
+                    className={`touch-target p-2 font-mono text-xs font-bold border flex flex-col items-center justify-center ${
+                      maintRowId === r.id
+                        ? 'bg-amber-500 text-zinc-950 border-amber-400'
+                        : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                    }`}
+                  >
+                    <span>{r.code}</span>
+                    <span className="text-[10px] font-normal truncate max-w-full opacity-80">
+                      {r.planting ? r.planting.cropName : 'Empty'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* AUTO-DETECTED CROP & TRACKING CODE IN THIS ROW */}
+            <div className="p-4 bg-zinc-950 border-l-4 border-amber-500 space-y-1">
+              <div className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
+                AUTO-DETECTED IN {currentMaintField.id} • {currentMaintRow?.code}:
+              </div>
+              {currentMaintRow?.planting ? (
+                <>
+                  <div className="text-lg font-extrabold text-zinc-100">
+                    {currentMaintRow.planting.cropName} — {currentMaintRow.planting.variety}
+                  </div>
+                  <div className="font-mono text-xs text-emerald-400">
+                    Tracking Code: {currentMaintRow.planting.trackingCode} (Source:{' '}
+                    {currentMaintRow.planting.sourceTrayCode})
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm font-mono text-zinc-400">
+                  Empty / Unplanted Row (Logs as Pre-Planting Bed Prep)
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Select Spray / Maintenance Action */}
+            <div>
+              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                2. SELECT SPRAY / INPUT / ACTION
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {MAINTENANCE_INPUTS.map((inp) => (
+                  <button
+                    key={inp.id}
+                    type="button"
+                    onClick={() => setSelectedInputId(inp.id)}
+                    className={`touch-target p-3 border text-left flex items-center justify-between ${
+                      selectedInputId === inp.id
+                        ? 'bg-zinc-100 text-zinc-950 border-white'
+                        : 'bg-zinc-950 text-zinc-200 border-zinc-800'
+                    }`}
+                  >
+                    <div>
+                      <div className="font-bold text-sm">{inp.name}</div>
+                      <div className="font-mono text-[11px] opacity-75">
+                        {inp.type} • {inp.rate}
+                      </div>
+                    </div>
+                    {inp.whpDays > 0 && (
+                      <span className="px-2 py-0.5 bg-red-600 text-white font-mono text-[10px] font-bold">
+                        {inp.whpDays}D LOCK
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleConfirmMaintain}
+              className="touch-target w-full py-4 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+            >
+              LOG MAINTENANCE ON {currentMaintField.id} • {currentMaintRow?.code}
+            </button>
+          </div>
+        )}
+
+        {/* ============================================================
+            4. HARVEST TAB (SELECT ROW -> AUTO-CHECKS CROP & WHP LOCK)
+           ============================================================ */}
+        {activeTab === 'harvest' && (
+          <div className="max-w-xl mx-auto bg-zinc-900 border border-zinc-800 p-4 sm:p-6 space-y-6">
+            <div className="border-b border-zinc-800 pb-3 flex items-center justify-between">
+              <h1 className="font-mono text-base font-bold uppercase tracking-wider text-emerald-400">
+                HARVEST LOG
+              </h1>
+              <span className="font-mono text-xs text-zinc-400">OPERATOR: {operator}</span>
+            </div>
+
+            {/* Step 1: Select Field & Row */}
+            <div>
+              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                1. SELECT FIELD & ROW TO HARVEST
+              </label>
+              <div className="grid grid-cols-3 gap-2 mb-2">
+                {fields.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => {
+                      setHarvFieldId(f.id);
+                      setHarvRowId(f.rows[0]?.id);
+                    }}
+                    className={`touch-target p-2.5 font-mono text-xs font-bold border ${
+                      harvFieldId === f.id
+                        ? 'bg-zinc-100 text-zinc-950 border-white'
+                        : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                    }`}
+                  >
+                    {f.name}
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-5 gap-2">
+                {currentHarvField.rows.map((r) => {
+                  const locked = Boolean(r.whpLockedUntil);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => setHarvRowId(r.id)}
+                      className={`touch-target p-2 font-mono text-xs font-bold border flex flex-col items-center justify-center ${
+                        harvRowId === r.id
+                          ? locked
+                            ? 'bg-red-600 text-white border-red-400'
+                            : 'bg-emerald-500 text-zinc-950 border-emerald-400'
+                          : locked
+                          ? 'bg-red-950/60 text-red-300 border-red-800'
+                          : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                      }`}
+                    >
+                      <span>{r.code}</span>
+                      <span className="text-[10px] font-normal truncate max-w-full">
+                        {locked ? 'LOCKED' : r.planting ? r.planting.cropName : 'Empty'}
+                      </span>
                     </button>
                   );
                 })}
               </div>
-
-              <div className="flex items-center gap-2 pr-2">
-                <button
-                  onClick={() => openQuickModal('harvest')}
-                  className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
-                >
-                  <Scissors className="w-4 h-4" />
-                  <span>+ Quick Harvest</span>
-                </button>
-                <button
-                  onClick={() => openQuickModal('input')}
-                  className="px-4 py-2 rounded-xl bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
-                >
-                  <Droplets className="w-4 h-4" />
-                  <span>+ Log Spray/Input</span>
-                </button>
-              </div>
-            </nav>
-          )}
-
-          {/* ============================================================
-              TAB 1: FIELD HUB (HIGH-CONTRAST 1-2 TAP FIELD DASHBOARD)
-             ============================================================ */}
-          {activeTab === 'hub' && (
-            <div className="space-y-6">
-              {/* 4 GIANT FIELD QUICK-ACTION CARDS (Engineered for 1-Tap Mobile & Tablet Use) */}
-              <div>
-                <div className="flex items-center justify-between mb-2.5 px-1">
-                  <h2 className="text-xs font-extrabold uppercase tracking-wider text-stone-500">
-                    1-Tap Field Logging Actions (Tagged as {activeOperator.name})
-                  </h2>
-                  <span className="text-xs font-mono text-stone-500">48px+ Glove-Friendly UI</span>
-                </div>
-
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  {/* Action 1: Harvest Pick */}
-                  <button
-                    onClick={() => openQuickModal('harvest')}
-                    className="p-4 sm:p-5 rounded-3xl bg-emerald-800 hover:bg-emerald-900 active:scale-[0.99] text-white text-left shadow-md transition flex flex-col justify-between min-h-[132px] group"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="p-3 rounded-2xl bg-white/15">
-                        <Scissors className="w-7 h-7 text-emerald-200" />
-                      </div>
-                      <span className="text-[11px] font-mono uppercase px-2.5 py-1 rounded-full bg-emerald-950/60 text-emerald-200 font-bold">
-                        WHP Checked
-                      </span>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-lg font-extrabold tracking-tight leading-tight">
-                        Harvest Pick
-                      </div>
-                      <p className="text-xs text-emerald-200 mt-0.5">
-                        Log yield & generate shed batch ID
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Action 2: Spray / Soil Input */}
-                  <button
-                    onClick={() => openQuickModal('input')}
-                    className="p-4 sm:p-5 rounded-3xl bg-amber-800 hover:bg-amber-900 active:scale-[0.99] text-white text-left shadow-md transition flex flex-col justify-between min-h-[132px]"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="p-3 rounded-2xl bg-white/15">
-                        <Droplets className="w-7 h-7 text-amber-200" />
-                      </div>
-                      <span className="text-[11px] font-mono uppercase px-2.5 py-1 rounded-full bg-amber-950/60 text-amber-200 font-bold">
-                        FSQ4.2 / SXC
-                      </span>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-lg font-extrabold tracking-tight leading-tight">
-                        Spray / Soil Input
-                      </div>
-                      <p className="text-xs text-amber-200 mt-0.5">
-                        Auto-fills batch, cert & weather
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Action 3: Plant / Transplant Bed */}
-                  <button
-                    onClick={() => openQuickModal('planting')}
-                    className="p-4 sm:p-5 rounded-3xl bg-teal-800 hover:bg-teal-900 active:scale-[0.99] text-white text-left shadow-md transition flex flex-col justify-between min-h-[132px]"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="p-3 rounded-2xl bg-white/15">
-                        <Sprout className="w-7 h-7 text-teal-200" />
-                      </div>
-                      <span className="text-[11px] font-mono uppercase px-2.5 py-1 rounded-full bg-teal-950/60 text-teal-200 font-bold">
-                        Bed Trace
-                      </span>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-lg font-extrabold tracking-tight leading-tight">
-                        Plant Bed / Row
-                      </div>
-                      <p className="text-xs text-teal-200 mt-0.5">
-                        Transplant trays or direct sow
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Action 4: Sow Nursery Trays */}
-                  <button
-                    onClick={() => openQuickModal('nursery')}
-                    className="p-4 sm:p-5 rounded-3xl bg-stone-900 hover:bg-stone-800 active:scale-[0.99] text-white text-left shadow-md transition flex flex-col justify-between min-h-[132px]"
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="p-3 rounded-2xl bg-white/15">
-                        <Layers className="w-7 h-7 text-stone-200" />
-                      </div>
-                      <span className="text-[11px] font-mono uppercase px-2.5 py-1 rounded-full bg-white/10 text-stone-200 font-bold">
-                        Propagation
-                      </span>
-                    </div>
-                    <div className="mt-4">
-                      <div className="text-lg font-extrabold tracking-tight leading-tight">
-                        Sow Nursery Trays
-                      </div>
-                      <p className="text-xs text-stone-300 mt-0.5">
-                        Log organic seed lot & cell count
-                      </p>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* ACTIVE WITHHOLDING PERIOD (WHP) LOCKOUT SAFETY BANNER */}
-              {lockedBeds.length > 0 && (
-                <div className="bg-red-950 text-white p-4 sm:p-5 rounded-3xl border-2 border-red-500 shadow-sm space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <ShieldAlert className="w-6 h-6 text-red-400 shrink-0" />
-                      <div>
-                        <h3 className="text-sm sm:text-base font-extrabold uppercase tracking-wide text-red-200">
-                          Active Withholding Period (WHP) Harvest Lockouts ({lockedBeds.length} Beds)
-                        </h3>
-                        <p className="text-xs text-red-100">
-                          System automatically blocks harvest batch creation on these rows until WHP expires.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                    {lockedBeds.map((lb) => (
-                      <div
-                        key={lb.rowId}
-                        className="p-3.5 rounded-2xl bg-red-900/70 border border-red-700/80 flex items-center justify-between gap-3"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono font-extrabold text-xs px-2 py-0.5 rounded bg-red-600 text-white">
-                              {lb.patchName.split('—')[0].trim()} • {lb.rowCode}
-                            </span>
-                            <span className="font-bold text-sm text-white">{lb.cropName}</span>
-                          </div>
-                          <div className="text-xs text-red-200 mt-1">
-                            Input: <strong>{lb.productName}</strong> • Safe Date:{' '}
-                            <strong className="text-amber-300 font-mono">{lb.safeDate}</strong>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() =>
-                            openQuickModal('harvest', { patchId: lb.patchId, rowId: lb.rowId })
-                          }
-                          className="touch-target px-3 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white font-bold text-xs shrink-0"
-                        >
-                          Test Lockout
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Two-Column Lower Hub: 1-Tap Harvest-Ready Beds + Recent Traceable Logs */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left 6 Cols: Ready to Pick Today (1-Tap Harvest) */}
-                <div className="lg:col-span-6 bg-white p-4 sm:p-5 rounded-3xl border border-stone-200 shadow-xs space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-extrabold text-stone-900 flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-emerald-700" />
-                        <span>Beds Ready to Harvest Today ({readyBeds.length})</span>
-                      </h3>
-                      <p className="text-xs text-stone-500">
-                        Zero active WHP — tap any bed to log a field pick in 2 taps.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('map')}
-                      className="text-xs font-bold text-emerald-800 hover:underline flex items-center gap-1"
-                    >
-                      <span>Full Map</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {readyBeds.map((item) => (
-                      <div
-                        key={item.rowId}
-                        className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 hover:border-emerald-400 transition flex items-center justify-between gap-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-extrabold px-2 py-0.5 rounded bg-emerald-900 text-white">
-                              {item.patchCode} • {item.rowCode}
-                            </span>
-                            <span className="font-extrabold text-sm text-stone-900 truncate">
-                              {item.planting.cropName} — {item.planting.variety}
-                            </span>
-                          </div>
-                          <div className="text-xs text-stone-500 mt-1 font-mono truncate">
-                            Ref: {item.planting.id} • Lot: {item.planting.seedLot}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() =>
-                            openQuickModal('harvest', {
-                              patchId: item.patchId,
-                              rowId: item.rowId,
-                            })
-                          }
-                          className="touch-target px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs"
-                        >
-                          <Scissors className="w-3.5 h-3.5" />
-                          <span>Pick Now</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Right 6 Cols: Recent Harvest Batches & One-Tap Audit Traceback */}
-                <div className="lg:col-span-6 bg-white p-4 sm:p-5 rounded-3xl border border-stone-200 shadow-xs space-y-3.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-extrabold text-stone-900 flex items-center gap-2">
-                        <GitBranch className="w-5 h-5 text-emerald-700" />
-                        <span>Recent Shed Harvest Batches</span>
-                      </h3>
-                      <p className="text-xs text-stone-500">
-                        Tap any batch to view full seed-to-sale SXC traceability.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        setRegisterSubTab('harvest');
-                        setActiveTab('registers');
-                      }}
-                      className="text-xs font-bold text-emerald-800 hover:underline flex items-center gap-1"
-                    >
-                      <span>All Registers</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {harvests.slice(0, 4).map((h) => (
-                      <div
-                        key={h.id}
-                        className="p-3.5 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between gap-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-stone-900 text-emerald-300">
-                              {h.id}
-                            </span>
-                            <span className="text-xs font-bold text-stone-500">{h.date}</span>
-                          </div>
-                          <div className="font-extrabold text-sm text-stone-900 mt-1 truncate">
-                            {h.quantity} {h.unit} • {h.cropName} ({h.variety})
-                          </div>
-                          <div className="text-xs text-stone-500">
-                            {h.patchName} ({h.rowCode}) • Logged by <strong>{h.operator}</strong>
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            setSelectedTraceBatchId(h.id);
-                            setActiveTab('trace');
-                          }}
-                          className="touch-target px-3.5 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold flex items-center gap-1.5 shrink-0"
-                        >
-                          <GitBranch className="w-3.5 h-3.5 text-emerald-400" />
-                          <span>Trace</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
-          )}
 
-          {/* ============================================================
-              TAB 2: INTERACTIVE PATCH & ROW FARM MAP
-             ============================================================ */}
-          {activeTab === 'map' && (
-            <FarmMapView
-              patches={patches}
-              plantings={plantings}
-              inputLogs={inputLogs}
-              harvests={harvests}
-              onOpenQuickModal={openQuickModal}
-              onClearWhpLock={handleClearWhpLock}
-            />
-          )}
+            {/* Step 2: Auto-Detected Crop & WHP Safety Status */}
+            {currentHarvRow?.whpLockedUntil ? (
+              <div className="p-4 bg-red-950 border-2 border-red-500 space-y-2">
+                <div className="flex items-center gap-2 font-mono text-xs font-black uppercase text-red-300">
+                  <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
+                  <span>HARVEST BLOCKED — ACTIVE SPRAY WITHHOLDING PERIOD</span>
+                </div>
+                <div className="text-sm text-zinc-100">
+                  <strong>
+                    {currentHarvField.name} • {currentHarvRow.code} (
+                    {currentHarvRow.planting?.cropName})
+                  </strong>{' '}
+                  was sprayed with <strong>{currentHarvRow.lastInput}</strong>.
+                </div>
+                <div className="font-mono text-xs text-amber-300">
+                  SAFE TO HARVEST ON: {currentHarvRow.whpLockedUntil}
+                </div>
+              </div>
+            ) : !currentHarvRow?.planting ? (
+              <div className="p-4 bg-zinc-950 border border-zinc-800 font-mono text-xs text-zinc-400">
+                No active crop planted in {currentHarvField.id} • {currentHarvRow?.code}. Select a
+                planted row above.
+              </div>
+            ) : (
+              <>
+                <div className="p-4 bg-zinc-950 border-l-4 border-emerald-500 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[11px] uppercase text-zinc-400">
+                      HARVESTING FROM {currentHarvField.id} • {currentHarvRow.code}:
+                    </span>
+                    <span className="font-mono text-[11px] font-bold text-emerald-400">
+                      ✓ WHP CLEARED
+                    </span>
+                  </div>
+                  <div className="text-lg font-extrabold text-zinc-100">
+                    {currentHarvRow.planting.cropName} ({currentHarvRow.planting.variety})
+                  </div>
+                  <div className="font-mono text-xs text-zinc-400">
+                    Row Code: {currentHarvRow.planting.trackingCode} ←{' '}
+                    {currentHarvRow.planting.sourceTrayCode}
+                  </div>
+                </div>
 
-          {/* ============================================================
-              TAB 3: OPERATIONAL REGISTERS (NURSERY, PLANTING, INPUT, HARVEST)
-             ============================================================ */}
-          {activeTab === 'registers' && (
-            <RegistersView
-              initialSubTab={registerSubTab}
-              nurseryBatches={nurseryBatches}
-              plantings={plantings}
-              inputLogs={inputLogs}
-              harvests={harvests}
-              onOpenQuickModal={openQuickModal}
-              onInspectBatchTraceback={(batchId) => {
-                setSelectedTraceBatchId(batchId);
-                setActiveTab('trace');
-              }}
-            />
-          )}
+                {/* Quantity Stepper */}
+                <div>
+                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                    2. QUANTITY ({currentHarvRow.planting.unit.toUpperCase()})
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setHarvQty((q) => Math.max(1, q - 5))}
+                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                    >
+                      -5
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHarvQty((q) => Math.max(1, q - 1))}
+                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                    >
+                      -1
+                    </button>
+                    <div className="touch-target flex-1 bg-zinc-950 border border-zinc-700 flex items-center justify-center font-mono text-xl font-black text-emerald-400">
+                      {harvQty} {currentHarvRow.planting.unit}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setHarvQty((q) => q + 1)}
+                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                    >
+                      +1
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHarvQty((q) => q + 5)}
+                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                    >
+                      +5
+                    </button>
+                  </div>
+                </div>
 
-          {/* ============================================================
-              TAB 4: SXC TRACEBACK QUERY ENGINE & MASS BALANCE LEDGER
-             ============================================================ */}
-          {activeTab === 'trace' && (
-            <TraceabilityView
-              selectedBatchId={selectedTraceBatchId}
-              onSelectBatchId={setSelectedTraceBatchId}
-              harvests={harvests}
-              plantings={plantings}
-              nurseryBatches={nurseryBatches}
-              inputLogs={inputLogs}
-              onAddAllocation={handleAddAllocation}
-            />
-          )}
+                {/* Auto-generated Harvest Batch Code */}
+                <div className="p-4 bg-zinc-950 border border-emerald-500/60 flex items-center justify-between">
+                  <span className="font-mono text-xs text-zinc-400">HARVEST BATCH CODE:</span>
+                  <span className="font-mono text-sm font-black text-emerald-400">
+                    HV-1016-{currentHarvField.id}-{currentHarvRow.code}-
+                    {currentHarvRow.planting.cropId}
+                  </span>
+                </div>
 
-          {/* ============================================================
-              TAB 5: ADMINISTRATIVE SETTINGS & MASTER CATALOGUES
-             ============================================================ */}
-          {activeTab === 'settings' && (
-            <SettingsView
-              patches={patches}
-              crops={crops}
-              approvedInputs={approvedInputs}
-              suppliers={SUPPLIERS}
-              onAddBedToPatch={handleAddBedToPatch}
-              onToggleInputStatus={handleToggleInputStatus}
-              onAddCrop={handleAddCrop}
-              onResetPrototypeData={handleResetPrototypeData}
-            />
-          )}
-        </div>
+                <button
+                  type="button"
+                  onClick={handleConfirmHarvest}
+                  className="touch-target w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+                >
+                  LOG HARVEST ({harvQty} {currentHarvRow.planting.unit})
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </main>
 
-        {/* ============================================================
-            MOBILE BOTTOM NAVIGATION BAR (Always shown on Mobile & Phone Preview)
-           ============================================================ */}
-        <nav
-          className={`${
-            mobilePreviewMode ? 'flex' : 'flex md:hidden'
-          } sticky bottom-0 z-30 bg-white border-t border-stone-200 px-2 py-1.5 justify-around items-center shadow-lg`}
-        >
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`touch-target flex-1 py-1.5 rounded-xl flex flex-col items-center justify-center gap-0.5 transition ${
-                  active
-                    ? 'text-emerald-900 font-extrabold bg-emerald-50'
-                    : 'text-stone-500 font-semibold'
-                }`}
-              >
-                <Icon className={`w-5 h-5 ${active ? 'text-emerald-700' : 'text-stone-400'}`} />
-                <span className="text-[11px]">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Quick-Log Field Modals */}
-        <QuickLogModals
-          activeModal={activeModal}
-          preselectedContext={modalContext}
-          onClose={() => setActiveModal(null)}
-          activeOperator={activeOperator}
-          patches={patches}
-          crops={crops}
-          approvedInputs={approvedInputs}
-          nurseryBatches={nurseryBatches}
-          plantings={plantings}
-          inputLogs={inputLogs}
-          onLogHarvest={handleLogHarvest}
-          onLogInput={handleLogInput}
-          onLogPlanting={handleLogPlanting}
-          onLogNursery={handleLogNursery}
-        />
-      </div>
+      {/* ============================================================
+          MOBILE BOTTOM NAVIGATION BAR (4 SHARP TABS)
+         ============================================================ */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-zinc-950 border-t border-zinc-800 grid grid-cols-4">
+        {navTabs.map((t) => {
+          const Icon = t.icon;
+          const active = activeTab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`h-14 flex flex-col items-center justify-center gap-1 border-r border-zinc-800 last:border-r-0 font-mono text-[11px] font-bold tracking-wider ${
+                active ? 'bg-emerald-500 text-zinc-950' : 'text-zinc-400'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
