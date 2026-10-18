@@ -1,10 +1,10 @@
 export const OPERATORS = ["Toby", "Ashley", "Hannah", "Staff"];
 
 export const CROPS = [
-  { id: "KAL", name: "Kale", variety: "Tuscan Blue", unit: "bunches" },
-  { id: "LET", name: "Lettuce", variety: "Butter Crunch", unit: "Head" },
+  { id: "KAL", name: "Kale", variety: "Lacinato", unit: "bunches" },
+  { id: "LET", name: "Lettuce", variety: "Salanova Mix", unit: "kg" },
   { id: "BRO", name: "Broccoli", variety: "Marathon", unit: "kg" },
-  { id: "BEA", name: "Bean", variety: "Round", unit: "kg" },
+  { id: "BEA", name: "Bean", variety: "Provider", unit: "kg" },
   { id: "ZUC", name: "Zucchini", variety: "Blackjack", unit: "kg" },
   { id: "TOM", name: "Tomato", variety: "Brandywine", unit: "kg" },
   { id: "BET", name: "Beetroot", variety: "Detroit Red", unit: "bunches" },
@@ -16,42 +16,36 @@ export const MAINTENANCE_INPUTS = [
     id: "dipel",
     name: "DiPel Bt Spray",
     type: "Pest Spray",
-    whpDays: 0,
     rate: "50g / 100L",
   },
   {
     id: "ecooil",
     name: "Eco-Oil Spray",
     type: "Miticide / Aphid",
-    whpDays: 1,
     rate: "500mL / 100L",
   },
   {
     id: "pyrethrum",
     name: "Pyrethrum Spray",
     type: "Knockdown Spray",
-    whpDays: 3,
     rate: "300mL / 100L",
   },
   {
     id: "kelp",
     name: "Kelp & Fish Fertigation",
     type: "Liquid Feed",
-    whpDays: 0,
     rate: "4L / Field",
   },
   {
     id: "compost",
     name: "Organic Compost",
     type: "Soil Input",
-    whpDays: 0,
     rate: "120kg / Row",
   },
   {
     id: "weed",
-    name: "Wheel Hoe / Weeding",
+    name: "Weeding",
     type: "Cultivation",
-    whpDays: 0,
     rate: "Mechanical",
   },
 ];
@@ -94,8 +88,8 @@ export const INITIAL_TRAYS = [
 
 export const INITIAL_FIELDS = [
   {
-    id: "TP",
-    name: "The Patch",
+    id: "PA",
+    name: "Patch A (North Flat)",
     rows: [
       {
         id: "PA-R01",
@@ -110,8 +104,7 @@ export const INITIAL_FIELDS = [
           unit: "kg",
           plantedDate: "2026-09-02",
         },
-        whpLockedUntil: null,
-        lastInput: "DiPel Bt Spray (0d WHP)",
+        lastInput: "DiPel Bt Spray",
       },
       {
         id: "PA-R02",
@@ -126,7 +119,6 @@ export const INITIAL_FIELDS = [
           unit: "bunches",
           plantedDate: "2026-08-25",
         },
-        whpLockedUntil: null,
         lastInput: "Kelp & Fish Fertigation",
       },
       {
@@ -137,12 +129,11 @@ export const INITIAL_FIELDS = [
           trackingCode: "PL-0928-PA-R03-BEA",
           sourceTrayCode: "DIRECT-SEED",
           cropId: "BEA",
-          cropName: "Bush Bean",
+          cropName: "Bean",
           variety: "Provider",
           unit: "kg",
           plantedDate: "2026-09-28",
         },
-        whpLockedUntil: null,
         lastInput: null,
       },
       {
@@ -158,22 +149,20 @@ export const INITIAL_FIELDS = [
           unit: "kg",
           plantedDate: "2026-09-10",
         },
-        whpLockedUntil: "2026-10-18",
-        lastInput: "Pyrethrum Spray (3d WHP)",
+        lastInput: "Pyrethrum Spray",
       },
       {
         id: "PA-R05",
         code: "R05",
         lengthM: 25,
         planting: null,
-        whpLockedUntil: null,
         lastInput: "Organic Compost",
       },
     ],
   },
   {
-    id: "LP",
-    name: "Lower Patch",
+    id: "PB",
+    name: "Patch B (Hillside)",
     rows: [
       {
         id: "PB-R01",
@@ -188,7 +177,6 @@ export const INITIAL_FIELDS = [
           unit: "kg",
           plantedDate: "2026-09-05",
         },
-        whpLockedUntil: null,
         lastInput: null,
       },
       {
@@ -204,7 +192,6 @@ export const INITIAL_FIELDS = [
           unit: "bunches",
           plantedDate: "2026-10-02",
         },
-        whpLockedUntil: null,
         lastInput: null,
       },
       {
@@ -212,14 +199,13 @@ export const INITIAL_FIELDS = [
         code: "R03",
         lengthM: 30,
         planting: null,
-        whpLockedUntil: null,
         lastInput: null,
       },
     ],
   },
   {
-    id: "PA",
-    name: "Patch Past The Avo's",
+    id: "TH1",
+    name: "Tunnel House 1",
     rows: [
       {
         id: "TH1-R01",
@@ -234,7 +220,6 @@ export const INITIAL_FIELDS = [
           unit: "kg",
           plantedDate: "2026-08-12",
         },
-        whpLockedUntil: null,
         lastInput: "Kelp & Fish Fertigation",
       },
       {
@@ -250,8 +235,7 @@ export const INITIAL_FIELDS = [
           unit: "kg",
           plantedDate: "2026-08-15",
         },
-        whpLockedUntil: "2026-10-17",
-        lastInput: "Eco-Oil Spray (1d WHP)",
+        lastInput: "Eco-Oil Spray",
       },
     ],
   },
@@ -259,9 +243,9 @@ export const INITIAL_FIELDS = [
 
 export const INITIAL_ACTIVITY_LOGS = [
   {
-    id: "HV-1016-PA-R02-KAL",
+    id: "HV-1019-PA-R02-KAL",
     type: "HARVEST",
-    date: "2026-10-16 06:20",
+    date: "2026-10-19 06:20",
     location: "Patch A • R02",
     crop: "Kale (Lacinato)",
     detail: "48 bunches harvested",
@@ -269,22 +253,22 @@ export const INITIAL_ACTIVITY_LOGS = [
     operator: "Toby",
   },
   {
-    id: "MT-1016-TH1-R02",
+    id: "MT-1019-TH1-R02",
     type: "MAINTAIN",
-    date: "2026-10-16 07:10",
+    date: "2026-10-19 07:10",
     location: "Tunnel House 1 • R02",
     crop: "Tomato (Brandywine)",
-    detail: "Eco-Oil Spray (1d WHP Lock until 2026-10-17)",
+    detail: "Eco-Oil Spray (500mL / 100L)",
     linkedCode: "PL-0815-TH1-R02-TOM",
     operator: "Hannah",
   },
   {
-    id: "MT-1015-PA-R04",
+    id: "MT-1018-PA-R04",
     type: "MAINTAIN",
-    date: "2026-10-15 06:45",
+    date: "2026-10-18 06:45",
     location: "Patch A • R04",
     crop: "Broccoli (Marathon)",
-    detail: "Pyrethrum Spray (3d WHP Lock until 2026-10-18)",
+    detail: "Pyrethrum Spray (300mL / 100L)",
     linkedCode: "PL-0910-PA-R04-BRO",
     operator: "Toby",
   },

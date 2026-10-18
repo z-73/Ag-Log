@@ -5,7 +5,6 @@ import {
   Wrench,
   Scissors,
   Plus,
-  ShieldAlert,
   Layers,
   Grid,
   Trash2,
@@ -83,9 +82,9 @@ export default function App() {
       id,
       name: newFieldName.trim(),
       rows: [
-        { id: `${id}-R01`, code: 'R01', lengthM: 25, planting: null, whpLockedUntil: null, lastInput: null },
-        { id: `${id}-R02`, code: 'R02', lengthM: 25, planting: null, whpLockedUntil: null, lastInput: null },
-        { id: `${id}-R03`, code: 'R03', lengthM: 25, planting: null, whpLockedUntil: null, lastInput: null },
+        { id: `${id}-R01`, code: 'R01', lengthM: 25, planting: null, lastInput: null },
+        { id: `${id}-R02`, code: 'R02', lengthM: 25, planting: null, lastInput: null },
+        { id: `${id}-R03`, code: 'R03', lengthM: 25, planting: null, lastInput: null },
       ],
     };
     setFields((prev) => [...prev, newField]);
@@ -109,7 +108,6 @@ export default function App() {
               code,
               lengthM: 25,
               planting: null,
-              whpLockedUntil: null,
               lastInput: null,
             },
           ],
@@ -127,7 +125,7 @@ export default function App() {
           : {
               ...f,
               rows: f.rows.map((r) =>
-                r.id === rowId ? { ...r, planting: null, whpLockedUntil: null } : r
+                r.id === rowId ? { ...r, planting: null } : r
               ),
             }
       )
@@ -205,7 +203,6 @@ export default function App() {
                         unit: crop.unit,
                         plantedDate: '2026-10-19',
                       },
-                      whpLockedUntil: null,
                     }
               ),
             }
@@ -242,13 +239,6 @@ export default function App() {
     const input =
       MAINTENANCE_INPUTS.find((i) => i.id === selectedInputId) || MAINTENANCE_INPUTS[0];
 
-    let lockDate = null;
-    if (input.whpDays > 0) {
-      const d = new Date('2026-10-19T08:00:00');
-      d.setDate(d.getDate() + input.whpDays);
-      lockDate = d.toISOString().split('T')[0];
-    }
-
     setFields((prev) =>
       prev.map((f) =>
         f.id !== field.id
@@ -260,8 +250,7 @@ export default function App() {
                   ? r
                   : {
                       ...r,
-                      whpLockedUntil: lockDate || r.whpLockedUntil,
-                      lastInput: `${input.name} (${input.whpDays}d WHP)`,
+                      lastInput: input.name,
                     }
               ),
             }
@@ -280,9 +269,7 @@ export default function App() {
         date: '2026-10-19',
         location: `${field.name} • ${row.code}`,
         crop: cropLabel,
-        detail: `${input.name} (${input.rate})${
-          lockDate ? ` • WHP LOCK UNTIL ${lockDate}` : ' • 0d WHP'
-        }`,
+        detail: `${input.name} (${input.rate})`,
         linkedCode: codeLabel,
         operator,
       },
@@ -299,7 +286,7 @@ export default function App() {
   const handleConfirmHarvest = () => {
     const field = fields.find((f) => f.id === harvFieldId) || fields[0];
     const row = field.rows.find((r) => r.id === harvRowId) || field.rows[0];
-    if (!row.planting || row.whpLockedUntil) return;
+    if (!row.planting) return;
 
     const harvestCode = `HV-1019-${field.id}-${row.code}-${row.planting.cropId}`;
 
@@ -487,17 +474,12 @@ export default function App() {
                   <div className="divider-list">
                     {field.rows.map((row) => {
                       const p = row.planting;
-                      const locked = Boolean(row.whpLockedUntil);
                       return (
                         <div key={row.id} className="row-item">
                           <div className="row-item-main">
                             <span
                               className={`badge badge-row ${
-                                locked
-                                  ? 'badge-danger'
-                                  : p
-                                  ? 'badge-accent'
-                                  : ''
+                                p ? 'badge-accent' : ''
                               }`}
                             >
                               {row.code}
@@ -509,14 +491,10 @@ export default function App() {
                                   <strong className="text-sm">
                                     {p.cropName} ({p.variety})
                                   </strong>
-                                  {locked && (
-                                    <span className="badge badge-danger">
-                                      WHP LOCK UNTIL {row.whpLockedUntil}
-                                    </span>
-                                  )}
                                 </div>
                                 <div className="text-mono text-xs text-muted">
                                   Code: {p.trackingCode} • Source: {p.sourceTrayCode}
+                                  {row.lastInput ? ` • Last Input: ${row.lastInput}` : ''}
                                 </div>
                               </div>
                             ) : (
@@ -544,11 +522,9 @@ export default function App() {
                                 </button>
                                 <button
                                   onClick={() => jumpToRowAction('harvest', field.id, row.id)}
-                                  className={`btn btn-sm ${
-                                    locked ? 'btn-danger' : 'btn-primary'
-                                  }`}
+                                  className="btn btn-sm btn-primary"
                                 >
-                                  {locked ? 'LOCKED' : 'HARVEST'}
+                                  HARVEST
                                 </button>
                                 <button
                                   onClick={() => handleClearRowCrop(field.id, row.id)}
@@ -951,19 +927,14 @@ export default function App() {
                     key={inp.id}
                     type="button"
                     onClick={() => setSelectedInputId(inp.id)}
-                    className={`choice-tile choice-row ${
+                    className={`choice-tile ${
                       selectedInputId === inp.id ? 'active' : ''
                     }`}
                   >
-                    <div>
-                      <div className="text-sm">{inp.name}</div>
-                      <div className="text-mono text-xs text-muted">
-                        {inp.type} • {inp.rate}
-                      </div>
+                    <div className="text-sm">{inp.name}</div>
+                    <div className="text-mono text-xs text-muted">
+                      {inp.type} • {inp.rate}
                     </div>
-                    {inp.whpDays > 0 && (
-                      <span className="badge badge-danger">{inp.whpDays}D LOCK</span>
-                    )}
                   </button>
                 ))}
               </div>
@@ -1011,7 +982,6 @@ export default function App() {
 
               <div className="grid-5">
                 {currentHarvField.rows.map((r) => {
-                  const locked = Boolean(r.whpLockedUntil);
                   const isSelected = harvRowId === r.id;
                   return (
                     <button
@@ -1019,18 +989,12 @@ export default function App() {
                       type="button"
                       onClick={() => setHarvRowId(r.id)}
                       className={`choice-tile ${
-                        isSelected
-                          ? locked
-                            ? 'active-locked'
-                            : 'active-accent'
-                          : locked
-                          ? 'locked'
-                          : ''
+                        isSelected ? 'active-accent' : ''
                       }`}
                     >
                       <span className="text-mono text-xs">{r.code}</span>
                       <span className="text-xs">
-                        {locked ? 'LOCKED' : r.planting ? r.planting.cropName : 'Empty'}
+                        {r.planting ? r.planting.cropName : 'Empty'}
                       </span>
                     </button>
                   );
@@ -1038,24 +1002,7 @@ export default function App() {
               </div>
             </div>
 
-            {currentHarvRow?.whpLockedUntil ? (
-              <div className="callout callout-danger stack-sm">
-                <div className="row-item-main text-mono text-xs text-danger">
-                  <ShieldAlert size={18} />
-                  <strong>HARVEST BLOCKED — ACTIVE SPRAY WITHHOLDING PERIOD</strong>
-                </div>
-                <div className="text-sm">
-                  <strong>
-                    {currentHarvField.name} • {currentHarvRow.code} (
-                    {currentHarvRow.planting?.cropName})
-                  </strong>{' '}
-                  was sprayed with <strong>{currentHarvRow.lastInput}</strong>.
-                </div>
-                <div className="text-mono text-xs text-warn">
-                  SAFE TO HARVEST ON: {currentHarvRow.whpLockedUntil}
-                </div>
-              </div>
-            ) : !currentHarvRow?.planting ? (
+            {!currentHarvRow?.planting ? (
               <div className="callout text-mono text-xs text-muted">
                 No active crop planted in {currentHarvField.id} • {currentHarvRow?.code}. Select a
                 planted row above.
@@ -1067,7 +1014,6 @@ export default function App() {
                     <span className="text-mono text-xs text-muted">
                       HARVESTING FROM {currentHarvField.id} • {currentHarvRow.code}:
                     </span>
-                    <span className="text-mono text-xs text-accent">✓ WHP CLEARED</span>
                   </div>
                   <div className="text-lg">
                     {currentHarvRow.planting.cropName} ({currentHarvRow.planting.variety})

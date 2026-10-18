@@ -3,14 +3,14 @@
    ========================================================================== */
 :root {
   /* Backgrounds & Surfaces */
-  --bg-main: #09090b;
-  --bg-panel: #121215;
-  --bg-elevated: #1a1a1f;
-  --bg-input: #09090b;
+  --bg-main: #304b40;
+  --bg-panel: #253a31;
+  --bg-elevated: #565679;
+  --bg-input: #304b40;
 
   /* Borders */
-  --border-color: #27272a;
-  --border-strong: #3f3f46;
+  --border-color: #000000;
+  --border-strong: #ffffff;
 
   /* Text */
   --text-main: #f4f4f5;
@@ -40,8 +40,8 @@
   --btn-active-text: #09090b;
 
   /* Typography & Sizing */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --touch-height: 48px;
 }
 
@@ -150,7 +150,9 @@ button {
   text-transform: uppercase;
   color: var(--text-muted);
   border-right: 1px solid var(--border-color);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .operator-btn:last-child {
@@ -181,7 +183,9 @@ button {
   text-transform: uppercase;
   color: var(--text-muted);
   border-right: 1px solid var(--border-color);
-  transition: background-color 0.15s, color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
 }
 
 .nav-tab:last-child {
@@ -329,7 +333,10 @@ button {
   background: var(--btn-bg);
   color: var(--text-main);
   border: 1px solid var(--border-strong);
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .btn:hover {
@@ -393,7 +400,10 @@ button {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  transition:
+    background-color 0.15s,
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .choice-tile:hover {
