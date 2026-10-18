@@ -1,26 +1,647 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ==========================================================================
+   1. SINGLE THEME CONFIGURATION (Change all colors in this one block)
+   ========================================================================== */
+:root {
+  /* Backgrounds & Surfaces */
+  --bg-main: #09090b;
+  --bg-panel: #121215;
+  --bg-elevated: #1a1a1f;
+  --bg-input: #09090b;
 
-@layer base {
-  * {
-    border-radius: 0px !important;
-  }
-  body {
-    -webkit-tap-highlight-color: transparent;
-    background-color: #09090b;
-    color: #f4f4f5;
-  }
+  /* Borders */
+  --border-color: #27272a;
+  --border-strong: #3f3f46;
+
+  /* Text */
+  --text-main: #f4f4f5;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --text-inverse: #09090b;
+
+  /* Primary Accent (Plant / Harvest / Active Selection) */
+  --accent: #10b981;
+  --accent-hover: #34d399;
+  --accent-surface: rgba(16, 185, 129, 0.12);
+
+  /* Secondary / Warning Accent (Maintenance / Sprays) */
+  --warn: #f59e0b;
+  --warn-hover: #fbbf24;
+  --warn-surface: rgba(245, 158, 11, 0.12);
+
+  /* Danger / Lockout Accent (WHP Lockout) */
+  --danger: #ef4444;
+  --danger-hover: #f87171;
+  --danger-surface: rgba(239, 68, 68, 0.15);
+
+  /* Neutral Interactive Buttons & Tiles */
+  --btn-bg: #18181b;
+  --btn-hover: #27272a;
+  --btn-active-bg: #f4f4f5;
+  --btn-active-text: #09090b;
+
+  /* Typography & Sizing */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --touch-height: 48px;
 }
 
-.touch-target {
-  min-height: 48px;
+/* ==========================================================================
+   2. RESET & BASE ELEMENTS
+   ========================================================================== */
+* {
+  box-sizing: border-box;
+  border-radius: 0 !important;
+  margin: 0;
+  padding: 0;
 }
 
-.no-scrollbar::-webkit-scrollbar {
+body {
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   3. LAYOUT SHELL & NAVIGATION
+   ========================================================================== */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-main);
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.topbar-inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 12px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand-badge {
+  background: var(--accent);
+  color: var(--text-inverse);
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 12px;
+  padding: 4px 10px;
+  letter-spacing: 0.06em;
+}
+
+.brand-subtitle {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.desktop-nav {
+  display: none;
+  border: 1px solid var(--border-color);
+  background: var(--bg-panel);
+}
+
+.operator-strip {
+  display: flex;
+  border: 1px solid var(--border-color);
+  background: var(--bg-panel);
+}
+
+.operator-btn {
+  height: 36px;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border-color);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.operator-btn:last-child {
+  border-right: none;
+}
+
+.operator-btn:hover {
+  background: var(--btn-hover);
+  color: var(--text-main);
+}
+
+.operator-btn.active {
+  background: var(--btn-active-bg);
+  color: var(--btn-active-text);
+}
+
+.nav-tab {
+  height: 40px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border-color);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.nav-tab:last-child {
+  border-right: none;
+}
+
+.nav-tab:hover {
+  background: var(--btn-hover);
+  color: var(--text-main);
+}
+
+.nav-tab.active {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.main-container {
+  max-width: 1120px;
+  width: 100%;
+  margin: 0 auto;
+  flex: 1;
+  padding: 16px 12px 96px;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: var(--bg-main);
+  border-top: 1px solid var(--border-color);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.bottom-nav .nav-tab {
+  height: 56px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   4. PANELS, LISTS & CARDS
+   ========================================================================== */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.stack-sm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color);
+}
+
+.panel-narrow {
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.panel-header {
+  padding: 12px 16px;
+  background: var(--bg-main);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.form-header {
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.section-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.divider-list > * + * {
+  border-top: 1px solid var(--border-color);
+}
+
+.row-item {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background-color 0.15s;
+}
+
+.row-item:hover {
+  background: var(--bg-elevated);
+}
+
+.row-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-end;
+}
+
+/* ==========================================================================
+   5. GENERIC BUTTONS, TILES & INPUTS
+   ========================================================================== */
+.btn {
+  min-height: 38px;
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--btn-bg);
+  color: var(--text-main);
+  border: 1px solid var(--border-strong);
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.btn:hover {
+  background: var(--btn-hover);
+}
+
+.btn-sm {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 11px;
+}
+
+.btn-block {
+  width: 100%;
+  min-height: 52px;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--text-inverse);
+  border-color: var(--accent);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-warn {
+  background: var(--warn);
+  color: var(--text-inverse);
+  border-color: var(--warn);
+}
+
+.btn-warn:hover {
+  background: var(--warn-hover);
+  border-color: var(--warn-hover);
+}
+
+.btn-danger {
+  background: var(--danger-surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: var(--danger);
+  color: var(--text-main);
+}
+
+/* Selectable Option Tiles (Fields, Rows, Crops, Sprays) */
+.choice-tile {
+  min-height: var(--touch-height);
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.choice-tile:hover {
+  background: var(--btn-hover);
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.choice-tile.active {
+  background: var(--btn-active-bg);
+  color: var(--btn-active-text);
+  border-color: var(--btn-active-bg);
+  font-weight: 700;
+}
+
+.choice-tile.active-accent {
+  background: var(--accent);
+  color: var(--text-inverse);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.choice-tile.active-warn {
+  background: var(--warn);
+  color: var(--text-inverse);
+  border-color: var(--warn);
+  font-weight: 700;
+}
+
+.choice-tile.locked {
+  background: var(--danger-surface);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.choice-tile.active-locked {
+  background: var(--danger);
+  color: var(--text-main);
+  border-color: var(--danger);
+}
+
+.choice-row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Inputs & Steppers */
+.input-field {
+  height: 40px;
+  padding: 0 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  color: var(--text-main);
+  font-size: 14px;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepper-display {
+  min-height: var(--touch-height);
+  flex: 1;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--accent);
+}
+
+/* ==========================================================================
+   6. BADGES, CALLOUTS & TRACKING CODE BOXES
+   ========================================================================== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-main);
+}
+
+.badge-row {
+  width: 48px;
+  height: 36px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.badge-accent {
+  background: var(--accent-surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.badge-warn {
+  background: var(--warn-surface);
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
+.badge-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--text-main);
+}
+
+.callout {
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent);
+}
+
+.callout-warn {
+  border-left-color: var(--warn);
+}
+
+.callout-danger {
+  background: var(--danger-surface);
+  border: 2px solid var(--danger);
+}
+
+.code-box {
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+}
+
+.banner-toast {
+  background: var(--accent);
+  color: var(--text-inverse);
+  padding: 10px 16px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ==========================================================================
+   7. SIMPLE GRIDS & UTILITIES
+   ========================================================================== */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.grid-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+}
+
+.text-muted {
+  color: var(--text-muted);
+}
+
+.text-accent {
+  color: var(--accent);
+}
+
+.text-warn {
+  color: var(--warn);
+}
+
+.text-danger {
+  color: var(--danger);
+}
+
+.text-xs {
+  font-size: 12px;
+}
+
+.text-sm {
+  font-size: 14px;
+}
+
+.text-lg {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.desktop-only {
   display: none;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+
+@media (min-width: 768px) {
+  .desktop-nav {
+    display: flex;
+  }
+  .bottom-nav,
+  .mobile-only {
+    display: none;
+  }
+  .desktop-only {
+    display: flex;
+  }
+  .main-container {
+    padding: 24px 20px 48px;
+  }
+  .row-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .row-actions {
+    align-self: center;
+  }
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }

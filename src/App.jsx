@@ -5,13 +5,9 @@ import {
   Wrench,
   Scissors,
   Plus,
-  Check,
-  AlertTriangle,
   ShieldAlert,
-  ShieldCheck,
   Layers,
   Grid,
-  ArrowRight,
   Trash2,
 } from 'lucide-react';
 
@@ -25,45 +21,33 @@ import {
 } from './data/mockFarmData';
 
 export default function App() {
-  // 4 Core Tabs: 'home' | 'plant' | 'maintain' | 'harvest'
   const [activeTab, setActiveTab] = useState('home');
-
-  // Active Operator (1-tap switcher)
   const [operator, setOperator] = useState(OPERATORS[0]);
 
-  // Core State
   const [fields, setFields] = useState(INITIAL_FIELDS);
   const [trays, setTrays] = useState(INITIAL_TRAYS);
   const [logs, setLogs] = useState(INITIAL_ACTIVITY_LOGS);
   const [banner, setBanner] = useState(null);
 
-  // Desktop Field Setup State (on Home tab)
+  // Desktop Field Setup State
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldCode, setNewFieldCode] = useState('');
 
-  // ==========================================
   // PLANT TAB STATE
-  // ==========================================
-  // 'tray' (Sow Seedling Tray) | 'row' (Plant into Field Row)
-  const [plantTarget, setPlantTarget] = useState('row');
-  // If 'row': 'from-tray' vs 'direct'
-  const [rowPlantSource, setRowPlantSource] = useState('from-tray');
+  const [plantTarget, setPlantTarget] = useState('row'); // 'row' | 'tray'
+  const [rowPlantSource, setRowPlantSource] = useState('from-tray'); // 'from-tray' | 'direct'
   const [selectedTrayCode, setSelectedTrayCode] = useState(INITIAL_TRAYS[0].code);
   const [selectedCropId, setSelectedCropId] = useState(CROPS[0].id);
   const [trayCount, setTrayCount] = useState(4);
   const [plantFieldId, setPlantFieldId] = useState(INITIAL_FIELDS[0].id);
   const [plantRowId, setPlantRowId] = useState('PA-R05');
 
-  // ==========================================
   // MAINTAIN TAB STATE
-  // ==========================================
   const [maintFieldId, setMaintFieldId] = useState(INITIAL_FIELDS[0].id);
   const [maintRowId, setMaintRowId] = useState('PA-R02');
   const [selectedInputId, setSelectedInputId] = useState(MAINTENANCE_INPUTS[0].id);
 
-  // ==========================================
   // HARVEST TAB STATE
-  // ==========================================
   const [harvFieldId, setHarvFieldId] = useState(INITIAL_FIELDS[0].id);
   const [harvRowId, setHarvRowId] = useState('PA-R02');
   const [harvQty, setHarvQty] = useState(25);
@@ -75,7 +59,6 @@ export default function App() {
     }, 3500);
   };
 
-  // Helper to jump from Home row card directly into an action for that row
   const jumpToRowAction = (tab, fieldId, rowId) => {
     if (tab === 'plant') {
       setPlantFieldId(fieldId);
@@ -91,9 +74,7 @@ export default function App() {
     setActiveTab(tab);
   };
 
-  // ==========================================
-  // HANDLERS: DESKTOP FIELD & ROW SETUP
-  // ==========================================
+  // DESKTOP FIELD & ROW SETUP
   const handleAddField = (e) => {
     e.preventDefault();
     if (!newFieldName.trim()) return;
@@ -154,11 +135,9 @@ export default function App() {
     notify(`ROW ${rowId} CLEARED`, 'Ready for new planting');
   };
 
-  // ==========================================
-  // HANDLER: PLANT (TRAY OR ROW)
-  // ==========================================
+  // PLANT HANDLER
   const handleConfirmPlant = () => {
-    const dateStamp = '1016';
+    const dateStamp = '1019';
 
     if (plantTarget === 'tray') {
       const crop = CROPS.find((c) => c.id === selectedCropId) || CROPS[0];
@@ -171,7 +150,7 @@ export default function App() {
         variety: crop.variety,
         trays: trayCount,
         cellsPerTray: 128,
-        sownDate: '2026-10-16',
+        sownDate: '2026-10-19',
         operator,
         status: 'Ready',
       };
@@ -181,7 +160,7 @@ export default function App() {
         {
           id: newTrayCode,
           type: 'PLANT-TRAY',
-          date: '2026-10-16',
+          date: '2026-10-19',
           location: 'Nursery',
           crop: `${crop.name} (${crop.variety})`,
           detail: `${trayCount} Trays Sown`,
@@ -194,7 +173,6 @@ export default function App() {
       return;
     }
 
-    // Otherwise planting into a Field Row
     const field = fields.find((f) => f.id === plantFieldId) || fields[0];
     const row = field.rows.find((r) => r.id === plantRowId) || field.rows[0];
     const trayObj = trays.find((t) => t.code === selectedTrayCode);
@@ -225,7 +203,7 @@ export default function App() {
                         cropName: crop.name,
                         variety: crop.variety,
                         unit: crop.unit,
-                        plantedDate: '2026-10-16',
+                        plantedDate: '2026-10-19',
                       },
                       whpLockedUntil: null,
                     }
@@ -238,7 +216,7 @@ export default function App() {
       {
         id: trackingCode,
         type: 'PLANT-ROW',
-        date: '2026-10-16',
+        date: '2026-10-19',
         location: `${field.name} • ${row.code}`,
         crop: `${crop.name} (${crop.variety})`,
         detail:
@@ -257,9 +235,7 @@ export default function App() {
     );
   };
 
-  // ==========================================
-  // HANDLER: MAINTAIN (SPRAY / FEED / WEED)
-  // ==========================================
+  // MAINTAIN HANDLER
   const handleConfirmMaintain = () => {
     const field = fields.find((f) => f.id === maintFieldId) || fields[0];
     const row = field.rows.find((r) => r.id === maintRowId) || field.rows[0];
@@ -268,7 +244,7 @@ export default function App() {
 
     let lockDate = null;
     if (input.whpDays > 0) {
-      const d = new Date('2026-10-16T08:00:00');
+      const d = new Date('2026-10-19T08:00:00');
       d.setDate(d.getDate() + input.whpDays);
       lockDate = d.toISOString().split('T')[0];
     }
@@ -299,9 +275,9 @@ export default function App() {
 
     setLogs((prev) => [
       {
-        id: `MT-1016-${field.id}-${row.code}`,
+        id: `MT-1019-${field.id}-${row.code}`,
         type: 'MAINTAIN',
-        date: '2026-10-16',
+        date: '2026-10-19',
         location: `${field.name} • ${row.code}`,
         crop: cropLabel,
         detail: `${input.name} (${input.rate})${
@@ -319,21 +295,19 @@ export default function App() {
     );
   };
 
-  // ==========================================
-  // HANDLER: HARVEST
-  // ==========================================
+  // HARVEST HANDLER
   const handleConfirmHarvest = () => {
     const field = fields.find((f) => f.id === harvFieldId) || fields[0];
     const row = field.rows.find((r) => r.id === harvRowId) || field.rows[0];
     if (!row.planting || row.whpLockedUntil) return;
 
-    const harvestCode = `HV-1016-${field.id}-${row.code}-${row.planting.cropId}`;
+    const harvestCode = `HV-1019-${field.id}-${row.code}-${row.planting.cropId}`;
 
     setLogs((prev) => [
       {
         id: harvestCode,
         type: 'HARVEST',
-        date: '2026-10-16',
+        date: '2026-10-19',
         location: `${field.name} • ${row.code}`,
         crop: `${row.planting.cropName} (${row.planting.variety})`,
         detail: `${harvQty} ${row.planting.unit} harvested`,
@@ -349,7 +323,6 @@ export default function App() {
     );
   };
 
-  // Derived selections for Maintain & Harvest views
   const currentPlantField = fields.find((f) => f.id === plantFieldId) || fields[0];
   const currentPlantRow =
     currentPlantField.rows.find((r) => r.id === plantRowId) || currentPlantField.rows[0];
@@ -370,55 +343,37 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col font-sans">
-      {/* ============================================================
-          TOP BAR: BRAND + 1-TAP OPERATOR SWITCHER + DESKTOP NAV
-         ============================================================ */}
-      <header className="sticky top-0 z-30 bg-zinc-950 border-b border-zinc-800">
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 flex items-center justify-between gap-2">
-          {/* Brand */}
-          <div className="flex items-center gap-3">
-            <div className="px-2.5 py-1 bg-emerald-500 text-zinc-950 font-mono font-black text-xs tracking-wider">
-              AG-LOG
-            </div>
-            <span className="hidden sm:inline text-xs font-mono uppercase tracking-widest text-zinc-400">
-              MT COTTON ORGANIC
-            </span>
+    <div className="app-shell">
+      {/* TOP BAR */}
+      <header className="topbar">
+        <div className="topbar-inner">
+          <div className="brand">
+            <div className="brand-badge">AG-LOG</div>
+            <span className="brand-subtitle desktop-only">MT COTTON ORGANIC</span>
           </div>
 
-          {/* Desktop Primary Tabs */}
-          <nav className="hidden md:flex items-center border border-zinc-800 bg-zinc-900">
+          <nav className="desktop-nav">
             {navTabs.map((t) => {
               const Icon = t.icon;
-              const active = activeTab === t.id;
               return (
                 <button
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`px-5 h-10 text-xs font-mono font-bold tracking-wider flex items-center gap-2 border-r border-zinc-800 last:border-r-0 transition ${
-                    active
-                      ? 'bg-emerald-500 text-zinc-950'
-                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800'
-                  }`}
+                  className={`nav-tab ${activeTab === t.id ? 'active' : ''}`}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon size={16} />
                   <span>{t.label}</span>
                 </button>
               );
             })}
           </nav>
 
-          {/* 1-Tap Operator Selector */}
-          <div className="flex items-center border border-zinc-800 bg-zinc-900">
+          <div className="operator-strip">
             {OPERATORS.map((op) => (
               <button
                 key={op}
                 onClick={() => setOperator(op)}
-                className={`px-2.5 sm:px-3 h-9 text-xs font-mono font-bold uppercase border-r border-zinc-800 last:border-r-0 transition ${
-                  operator === op
-                    ? 'bg-zinc-100 text-zinc-950'
-                    : 'text-zinc-400 hover:text-zinc-200'
-                }`}
+                className={`operator-btn ${operator === op ? 'active' : ''}`}
               >
                 {op}
               </button>
@@ -427,74 +382,72 @@ export default function App() {
         </div>
       </header>
 
-      {/* Instant Feedback Strip */}
+      {/* TOAST BANNER */}
       {banner && (
-        <div className="bg-emerald-500 text-zinc-950 px-4 py-2.5 border-b border-emerald-400 font-mono text-xs flex items-center justify-between max-w-6xl w-full mx-auto">
+        <div className="banner-toast">
           <div>
-            <strong className="font-black mr-2">✓ {banner.msg}</strong>
-            <span>{banner.sub}</span>
+            <strong>✓ {banner.msg}</strong> <span>{banner.sub}</span>
           </div>
-          <button onClick={() => setBanner(null)} className="font-bold underline ml-4">
-            OK
+          <button onClick={() => setBanner(null)} className="text-mono">
+            [OK]
           </button>
         </div>
       )}
 
-      {/* ============================================================
-          MAIN CONTENT AREA
-         ============================================================ */}
-      <main className="max-w-6xl w-full mx-auto flex-1 px-3 sm:px-6 pt-4 pb-24 md:pb-12">
+      {/* MAIN WORKSPACE */}
+      <main className="main-container">
         {/* ============================================================
             1. HOME TAB
-            - Mobile: Fast 3-button launcher + Active Rows Status + Recent Log
-            - Desktop: Full Field & Row Setup Builder + Live Row Status
            ============================================================ */}
         {activeTab === 'home' && (
-          <div className="space-y-6">
-            {/* Mobile Quick Launcher */}
-            <div className="grid grid-cols-3 gap-2 md:hidden">
+          <div className="stack">
+            {/* Mobile 3-Button Quick Action Launcher */}
+            <div className="grid-3 mobile-only">
               <button
                 onClick={() => setActiveTab('plant')}
-                className="p-4 bg-zinc-900 border border-zinc-700 active:bg-emerald-500 active:text-zinc-950 text-left flex flex-col justify-between h-24"
+                className="choice-tile"
               >
-                <Sprout className="w-5 h-5 text-emerald-400" />
-                <span className="font-mono font-bold text-xs tracking-wider">1. PLANT</span>
+                <Sprout size={18} className="text-accent" />
+                <span className="text-mono text-xs" style={{ marginTop: 8 }}>
+                  1. PLANT
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab('maintain')}
-                className="p-4 bg-zinc-900 border border-zinc-700 active:bg-amber-500 active:text-zinc-950 text-left flex flex-col justify-between h-24"
+                className="choice-tile"
               >
-                <Wrench className="w-5 h-5 text-amber-400" />
-                <span className="font-mono font-bold text-xs tracking-wider">2. MAINTAIN</span>
+                <Wrench size={18} className="text-warn" />
+                <span className="text-mono text-xs" style={{ marginTop: 8 }}>
+                  2. MAINTAIN
+                </span>
               </button>
               <button
                 onClick={() => setActiveTab('harvest')}
-                className="p-4 bg-zinc-900 border border-zinc-700 active:bg-emerald-500 active:text-zinc-950 text-left flex flex-col justify-between h-24"
+                className="choice-tile"
               >
-                <Scissors className="w-5 h-5 text-emerald-400" />
-                <span className="font-mono font-bold text-xs tracking-wider">3. HARVEST</span>
+                <Scissors size={18} className="text-accent" />
+                <span className="text-mono text-xs" style={{ marginTop: 8 }}>
+                  3. HARVEST
+                </span>
               </button>
             </div>
 
-            {/* DESKTOP FIELD & ROW SETUP HEADER */}
-            <div className="hidden md:flex items-end justify-between bg-zinc-900 border border-zinc-800 p-4">
+            {/* Desktop Field & Row Setup Bar */}
+            <div className="panel panel-header desktop-only">
               <div>
-                <div className="text-xs font-mono uppercase tracking-widest text-emerald-400">
+                <div className="text-mono text-xs text-accent">
                   DESKTOP FIELD & ROW CONFIGURATION
                 </div>
-                <h1 className="text-lg font-bold text-zinc-100 mt-0.5">
-                  Fields, Rows & Active Crop Tracking
-                </h1>
+                <div className="text-lg">Fields, Rows & Active Crop Tracking</div>
               </div>
 
-              {/* Add New Field Form on Desktop */}
-              <form onSubmit={handleAddField} className="flex items-center gap-2">
+              <form onSubmit={handleAddField} className="stepper">
                 <input
                   type="text"
                   value={newFieldName}
                   onChange={(e) => setNewFieldName(e.target.value)}
                   placeholder="New Field Name (e.g. Patch C)"
-                  className="h-10 px-3 bg-zinc-950 border border-zinc-700 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none"
+                  className="input-field"
                 />
                 <input
                   type="text"
@@ -502,95 +455,82 @@ export default function App() {
                   value={newFieldCode}
                   onChange={(e) => setNewFieldCode(e.target.value.toUpperCase())}
                   placeholder="Code (PC)"
-                  className="h-10 w-24 px-3 bg-zinc-950 border border-zinc-700 text-sm font-mono uppercase text-zinc-100 placeholder:text-zinc-500 focus:border-emerald-500 focus:outline-none"
+                  className="input-field text-mono"
+                  style={{ width: 96 }}
                 />
-                <button
-                  type="submit"
-                  className="h-10 px-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-bold text-xs uppercase flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" />
+                <button type="submit" className="btn btn-primary">
+                  <Plus size={16} />
                   <span>Add Field</span>
                 </button>
               </form>
             </div>
 
-            {/* FIELDS & ROWS OVERVIEW (Works on both Desktop & Mobile) */}
-            <div className="space-y-4">
+            {/* Fields & Rows List */}
+            <div className="stack">
               {fields.map((field) => (
-                <div key={field.id} className="bg-zinc-900 border border-zinc-800">
-                  {/* Field Bar */}
-                  <div className="px-4 py-3 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className="px-2 py-0.5 bg-zinc-800 text-zinc-200 font-mono text-xs font-bold">
-                        {field.id}
-                      </span>
-                      <h2 className="font-bold text-sm sm:text-base text-zinc-100">
-                        {field.name}
-                      </h2>
+                <div key={field.id} className="panel">
+                  <div className="panel-header">
+                    <div className="row-item-main">
+                      <span className="badge">{field.id}</span>
+                      <strong>{field.name}</strong>
                     </div>
 
                     <button
                       onClick={() => handleAddRowToField(field.id)}
-                      className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-mono text-xs font-bold flex items-center gap-1"
+                      className="btn btn-sm"
                     >
-                      <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                      <Plus size={14} className="text-accent" />
                       <span>ADD ROW</span>
                     </button>
                   </div>
 
-                  {/* Rows List */}
-                  <div className="divide-y divide-zinc-800">
+                  <div className="divider-list">
                     {field.rows.map((row) => {
                       const p = row.planting;
                       const locked = Boolean(row.whpLockedUntil);
                       return (
-                        <div
-                          key={row.id}
-                          className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-zinc-800/40"
-                        >
-                          <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        <div key={row.id} className="row-item">
+                          <div className="row-item-main">
                             <span
-                              className={`w-12 h-9 flex items-center justify-center font-mono font-bold text-xs shrink-0 border ${
+                              className={`badge badge-row ${
                                 locked
-                                  ? 'bg-red-950 border-red-600 text-red-200'
+                                  ? 'badge-danger'
                                   : p
-                                  ? 'bg-emerald-950 border-emerald-700 text-emerald-300'
-                                  : 'bg-zinc-950 border-zinc-800 text-zinc-500'
+                                  ? 'badge-accent'
+                                  : ''
                               }`}
                             >
                               {row.code}
                             </span>
 
                             {p ? (
-                              <div className="min-w-0">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span className="font-bold text-sm text-zinc-100">
+                              <div>
+                                <div className="row-item-main">
+                                  <strong className="text-sm">
                                     {p.cropName} ({p.variety})
-                                  </span>
+                                  </strong>
                                   {locked && (
-                                    <span className="px-2 py-0.5 bg-red-600 text-white font-mono text-[11px] font-bold">
+                                    <span className="badge badge-danger">
                                       WHP LOCK UNTIL {row.whpLockedUntil}
                                     </span>
                                   )}
                                 </div>
-                                <div className="font-mono text-xs text-zinc-400 truncate">
-                                  Code: <span className="text-zinc-200">{p.trackingCode}</span> •
-                                  Source: {p.sourceTrayCode}
+                                <div className="text-mono text-xs text-muted">
+                                  Code: {p.trackingCode} • Source: {p.sourceTrayCode}
                                 </div>
                               </div>
                             ) : (
-                              <div className="text-xs font-mono text-zinc-500">
+                              <div className="text-mono text-xs text-muted">
                                 EMPTY ROW ({row.lengthM}m) — READY TO PLANT
                               </div>
                             )}
                           </div>
 
-                          {/* Quick Row Actions */}
-                          <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                          <div className="row-actions">
                             {!p ? (
                               <button
                                 onClick={() => jumpToRowAction('plant', field.id, row.id)}
-                                className="px-3 py-1.5 bg-emerald-500 text-zinc-950 font-mono text-xs font-bold uppercase"
+                                className="btn btn-sm btn-primary"
                               >
                                 + PLANT
                               </button>
@@ -598,26 +538,24 @@ export default function App() {
                               <>
                                 <button
                                   onClick={() => jumpToRowAction('maintain', field.id, row.id)}
-                                  className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-amber-300 font-mono text-xs font-bold uppercase"
+                                  className="btn btn-sm"
                                 >
                                   SPRAY/FEED
                                 </button>
                                 <button
                                   onClick={() => jumpToRowAction('harvest', field.id, row.id)}
-                                  className={`px-2.5 py-1.5 font-mono text-xs font-bold uppercase border ${
-                                    locked
-                                      ? 'bg-red-950 border-red-800 text-red-300'
-                                      : 'bg-emerald-500 border-emerald-500 text-zinc-950'
+                                  className={`btn btn-sm ${
+                                    locked ? 'btn-danger' : 'btn-primary'
                                   }`}
                                 >
                                   {locked ? 'LOCKED' : 'HARVEST'}
                                 </button>
                                 <button
                                   onClick={() => handleClearRowCrop(field.id, row.id)}
-                                  className="p-1.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 text-zinc-500 hover:text-zinc-300"
-                                  title="Clear finished crop from row"
+                                  className="btn btn-sm"
+                                  title="Clear row"
                                 >
-                                  <Trash2 className="w-3.5 h-3.5" />
+                                  <Trash2 size={14} />
                                 </button>
                               </>
                             )}
@@ -631,11 +569,10 @@ export default function App() {
             </div>
 
             {/* Active Seedling Trays + Recent Log */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Nursery Seedling Trays */}
-              <div className="bg-zinc-900 border border-zinc-800">
-                <div className="px-4 py-3 bg-zinc-950 border-b border-zinc-800 flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">
+            <div className="grid-2">
+              <div className="panel">
+                <div className="panel-header">
+                  <span className="text-mono text-xs">
                     ACTIVE SEEDLING TRAYS ({trays.length})
                   </span>
                   <button
@@ -643,22 +580,20 @@ export default function App() {
                       setPlantTarget('tray');
                       setActiveTab('plant');
                     }}
-                    className="font-mono text-xs font-bold text-emerald-400 hover:underline"
+                    className="btn btn-sm"
                   >
                     + SOW TRAY
                   </button>
                 </div>
-                <div className="divide-y divide-zinc-800">
+                <div className="divider-list">
                   {trays.map((t) => (
-                    <div key={t.code} className="p-3 px-4 flex items-center justify-between text-xs">
+                    <div key={t.code} className="row-item">
                       <div>
-                        <span className="font-mono font-bold text-emerald-400 mr-2">
-                          {t.code}
-                        </span>
-                        <strong className="text-zinc-100">
+                        <span className="text-mono text-xs text-accent">{t.code}</span>{' '}
+                        <strong className="text-sm">
                           {t.cropName} ({t.variety})
                         </strong>
-                        <div className="text-zinc-500 font-mono mt-0.5">
+                        <div className="text-mono text-xs text-muted">
                           {t.trays} Trays • Sown {t.sownDate} by {t.operator}
                         </div>
                       </div>
@@ -669,7 +604,7 @@ export default function App() {
                           setRowPlantSource('from-tray');
                           setActiveTab('plant');
                         }}
-                        className="px-2.5 py-1.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 font-mono font-bold text-zinc-200"
+                        className="btn btn-sm"
                       >
                         PLANT TO ROW →
                       </button>
@@ -678,37 +613,36 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Recent Traceability Log */}
-              <div className="bg-zinc-900 border border-zinc-800">
-                <div className="px-4 py-3 bg-zinc-950 border-b border-zinc-800">
-                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-zinc-300">
-                    RECENT LOGS & TRACKING CODES
-                  </span>
+              <div className="panel">
+                <div className="panel-header">
+                  <span className="text-mono text-xs">RECENT LOGS & TRACKING CODES</span>
                 </div>
-                <div className="divide-y divide-zinc-800 max-h-72 overflow-y-auto">
-                  {logs.map((l, idx) => (
-                    <div key={idx} className="p-3 px-4 space-y-1 text-xs">
-                      <div className="flex items-center justify-between font-mono">
-                        <span
-                          className={`px-1.5 py-0.5 font-bold text-[10px] ${
-                            l.type === 'HARVEST'
-                              ? 'bg-emerald-500 text-zinc-950'
-                              : l.type === 'MAINTAIN'
-                              ? 'bg-amber-500 text-zinc-950'
-                              : 'bg-zinc-200 text-zinc-950'
-                          }`}
-                        >
-                          {l.type}
-                        </span>
-                        <span className="text-zinc-500">
-                          {l.date} • {l.operator}
-                        </span>
+                <div className="divider-list">
+                  {logs.slice(0, 6).map((l, idx) => (
+                    <div key={idx} className="row-item">
+                      <div className="stack-sm" style={{ width: '100%' }}>
+                        <div className="row-item-main" style={{ justifyContent: 'space-between' }}>
+                          <span
+                            className={`badge ${
+                              l.type === 'HARVEST'
+                                ? 'badge-accent'
+                                : l.type === 'MAINTAIN'
+                                ? 'badge-warn'
+                                : ''
+                            }`}
+                          >
+                            {l.type}
+                          </span>
+                          <span className="text-mono text-xs text-muted">
+                            {l.date} • {l.operator}
+                          </span>
+                        </div>
+                        <strong className="text-sm">
+                          {l.location} — {l.crop}
+                        </strong>
+                        <div className="text-xs text-muted">{l.detail}</div>
+                        <div className="text-mono text-xs text-accent">{l.linkedCode}</div>
                       </div>
-                      <div className="font-bold text-zinc-100">
-                        {l.location} — {l.crop}
-                      </div>
-                      <div className="text-zinc-400">{l.detail}</div>
-                      <div className="font-mono text-[11px] text-emerald-400">{l.linkedCode}</div>
                     </div>
                   ))}
                 </div>
@@ -718,131 +652,104 @@ export default function App() {
         )}
 
         {/* ============================================================
-            2. PLANT TAB (EITHER IN A FIELD ROW OR A SEEDLING TRAY)
+            2. PLANT TAB
            ============================================================ */}
         {activeTab === 'plant' && (
-          <div className="max-w-xl mx-auto bg-zinc-900 border border-zinc-800 p-4 sm:p-6 space-y-6">
-            <div className="border-b border-zinc-800 pb-3 flex items-center justify-between">
-              <h1 className="font-mono text-base font-bold uppercase tracking-wider text-emerald-400">
-                PLANTING LOG
-              </h1>
-              <span className="font-mono text-xs text-zinc-400">OPERATOR: {operator}</span>
+          <div className="panel panel-narrow stack">
+            <div className="form-header">
+              <strong className="text-mono text-accent">PLANTING LOG</strong>
+              <span className="text-mono text-xs text-muted">OPERATOR: {operator}</span>
             </div>
 
-            {/* Step 1: Where are we planting? */}
             <div>
-              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                1. WHERE ARE YOU PLANTING?
-              </label>
-              <div className="grid grid-cols-2 gap-2">
+              <label className="section-label">1. WHERE ARE YOU PLANTING?</label>
+              <div className="grid-2">
                 <button
                   type="button"
                   onClick={() => setPlantTarget('row')}
-                  className={`touch-target p-3.5 font-mono text-xs sm:text-sm font-bold uppercase border text-left flex items-center justify-between ${
-                    plantTarget === 'row'
-                      ? 'bg-emerald-500 text-zinc-950 border-emerald-400'
-                      : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                  className={`choice-tile choice-row ${
+                    plantTarget === 'row' ? 'active-accent' : ''
                   }`}
                 >
-                  <span>FIELD ROW</span>
-                  <Grid className="w-4 h-4" />
+                  <span className="text-mono text-xs">FIELD ROW</span>
+                  <Grid size={16} />
                 </button>
                 <button
                   type="button"
                   onClick={() => setPlantTarget('tray')}
-                  className={`touch-target p-3.5 font-mono text-xs sm:text-sm font-bold uppercase border text-left flex items-center justify-between ${
-                    plantTarget === 'tray'
-                      ? 'bg-emerald-500 text-zinc-950 border-emerald-400'
-                      : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                  className={`choice-tile choice-row ${
+                    plantTarget === 'tray' ? 'active-accent' : ''
                   }`}
                 >
-                  <span>SEEDLING TRAY</span>
-                  <Layers className="w-4 h-4" />
+                  <span className="text-mono text-xs">SEEDLING TRAY</span>
+                  <Layers size={16} />
                 </button>
               </div>
             </div>
 
-            {/* FLOW A: SOWING A SEEDLING TRAY */}
-            {plantTarget === 'tray' && (
+            {plantTarget === 'tray' ? (
               <>
                 <div>
-                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                    2. SELECT CROP
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <label className="section-label">2. SELECT CROP</label>
+                  <div className="grid-4">
                     {CROPS.map((c) => (
                       <button
                         key={c.id}
                         type="button"
                         onClick={() => setSelectedCropId(c.id)}
-                        className={`touch-target p-3 border text-left ${
-                          selectedCropId === c.id
-                            ? 'bg-zinc-100 text-zinc-950 border-white font-bold'
-                            : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                        className={`choice-tile ${
+                          selectedCropId === c.id ? 'active' : ''
                         }`}
                       >
-                        <div className="text-sm font-bold">{c.name}</div>
-                        <div className="text-[11px] opacity-75 truncate">{c.variety}</div>
+                        <div className="text-sm">{c.name}</div>
+                        <div className="text-xs text-muted">{c.variety}</div>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                    3. HOW MANY TRAYS?
-                  </label>
-                  <div className="flex items-center gap-2">
+                  <label className="section-label">3. HOW MANY TRAYS?</label>
+                  <div className="stepper">
                     <button
                       type="button"
                       onClick={() => setTrayCount((n) => Math.max(1, n - 1))}
-                      className="touch-target px-5 bg-zinc-950 border border-zinc-700 font-mono text-lg font-bold"
+                      className="btn"
                     >
                       -1
                     </button>
-                    <div className="touch-target flex-1 bg-zinc-950 border border-zinc-700 flex items-center justify-center font-mono text-xl font-black">
-                      {trayCount} TRAYS
-                    </div>
+                    <div className="stepper-display">{trayCount} TRAYS</div>
                     <button
                       type="button"
                       onClick={() => setTrayCount((n) => n + 1)}
-                      className="touch-target px-5 bg-zinc-950 border border-zinc-700 font-mono text-lg font-bold"
+                      className="btn"
                     >
                       +1
                     </button>
                   </div>
                 </div>
 
-                {/* Auto-generated Tracking Code Box */}
-                <div className="p-4 bg-zinc-950 border border-emerald-500/60 flex items-center justify-between">
-                  <span className="font-mono text-xs text-zinc-400">
-                    AUTO TRACKING CODE:
-                  </span>
-                  <span className="font-mono text-base font-black text-emerald-400">
-                    TR-1016-{selectedCropId}
+                <div className="code-box">
+                  <span className="text-xs text-muted">AUTO TRACKING CODE:</span>
+                  <strong className="text-accent">
+                    TR-1019-{selectedCropId}
                     {trays.filter((t) => t.cropId === selectedCropId).length + 1}
-                  </span>
+                  </strong>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleConfirmPlant}
-                  className="touch-target w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+                  className="btn btn-primary btn-block"
                 >
                   CREATE SEEDLING TRAY & CODE
                 </button>
               </>
-            )}
-
-            {/* FLOW B: PLANTING INTO A FIELD ROW */}
-            {plantTarget === 'row' && (
+            ) : (
               <>
-                {/* Select Field & Row */}
                 <div>
-                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                    2. SELECT FIELD & ROW
-                  </label>
-                  <div className="grid grid-cols-3 gap-2 mb-2">
+                  <label className="section-label">2. SELECT FIELD & ROW</label>
+                  <div className="grid-3" style={{ marginBottom: 8 }}>
                     {fields.map((f) => (
                       <button
                         key={f.id}
@@ -851,33 +758,27 @@ export default function App() {
                           setPlantFieldId(f.id);
                           setPlantRowId(f.rows[0]?.id);
                         }}
-                        className={`touch-target p-2.5 font-mono text-xs font-bold border ${
-                          plantFieldId === f.id
-                            ? 'bg-zinc-100 text-zinc-950 border-white'
-                            : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                        className={`choice-tile ${
+                          plantFieldId === f.id ? 'active' : ''
                         }`}
                       >
-                        {f.name}
+                        <span className="text-mono text-xs">{f.name}</span>
                       </button>
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-5 gap-2">
+                  <div className="grid-5">
                     {currentPlantField.rows.map((r) => (
                       <button
                         key={r.id}
                         type="button"
                         onClick={() => setPlantRowId(r.id)}
-                        className={`touch-target p-2 font-mono text-xs font-bold border flex flex-col items-center justify-center ${
-                          plantRowId === r.id
-                            ? 'bg-emerald-500 text-zinc-950 border-emerald-400'
-                            : r.planting
-                            ? 'bg-zinc-950 text-zinc-400 border-zinc-800'
-                            : 'bg-zinc-950 text-emerald-400 border-emerald-900'
+                        className={`choice-tile ${
+                          plantRowId === r.id ? 'active-accent' : ''
                         }`}
                       >
-                        <span>{r.code}</span>
-                        <span className="text-[10px] font-normal truncate max-w-full">
+                        <span className="text-mono text-xs">{r.code}</span>
+                        <span className="text-xs">
                           {r.planting ? r.planting.cropName : 'Empty'}
                         </span>
                       </button>
@@ -885,97 +786,85 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Source: From Seedling Tray vs Direct Seed */}
                 <div>
-                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                    3. PLANTING SOURCE
-                  </label>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
+                  <label className="section-label">3. PLANTING SOURCE</label>
+                  <div className="grid-2" style={{ marginBottom: 8 }}>
                     <button
                       type="button"
                       onClick={() => setRowPlantSource('from-tray')}
-                      className={`touch-target p-2.5 font-mono text-xs font-bold border ${
-                        rowPlantSource === 'from-tray'
-                          ? 'bg-zinc-100 text-zinc-950 border-white'
-                          : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                      className={`choice-tile ${
+                        rowPlantSource === 'from-tray' ? 'active' : ''
                       }`}
                     >
-                      FROM SEEDLING TRAY
+                      <span className="text-mono text-xs">FROM SEEDLING TRAY</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setRowPlantSource('direct')}
-                      className={`touch-target p-2.5 font-mono text-xs font-bold border ${
-                        rowPlantSource === 'direct'
-                          ? 'bg-zinc-100 text-zinc-950 border-white'
-                          : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                      className={`choice-tile ${
+                        rowPlantSource === 'direct' ? 'active' : ''
                       }`}
                     >
-                      DIRECT SEED
+                      <span className="text-mono text-xs">DIRECT SEED</span>
                     </button>
                   </div>
 
                   {rowPlantSource === 'from-tray' ? (
-                    <div className="space-y-2">
+                    <div className="stack-sm">
                       {trays.map((t) => (
                         <button
                           key={t.code}
                           type="button"
                           onClick={() => setSelectedTrayCode(t.code)}
-                          className={`touch-target w-full p-3 border text-left flex items-center justify-between ${
-                            selectedTrayCode === t.code
-                              ? 'bg-zinc-800 border-emerald-500 text-zinc-100'
-                              : 'bg-zinc-950 border-zinc-800 text-zinc-400'
+                          className={`choice-tile choice-row ${
+                            selectedTrayCode === t.code ? 'active' : ''
                           }`}
                         >
                           <div>
-                            <span className="font-mono font-bold text-emerald-400 mr-2">
+                            <span className="text-mono text-xs text-accent">
                               {t.code}
-                            </span>
-                            <span className="font-bold text-sm text-zinc-100">
+                            </span>{' '}
+                            <strong className="text-sm">
                               {t.cropName} ({t.variety})
-                            </span>
+                            </strong>
                           </div>
-                          <span className="font-mono text-xs">{t.trays} trays</span>
+                          <span className="text-mono text-xs">{t.trays} trays</span>
                         </button>
                       ))}
                     </div>
                   ) : (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <div className="grid-4">
                       {CROPS.map((c) => (
                         <button
                           key={c.id}
                           type="button"
                           onClick={() => setSelectedCropId(c.id)}
-                          className={`touch-target p-3 border text-left ${
-                            selectedCropId === c.id
-                              ? 'bg-zinc-100 text-zinc-950 border-white font-bold'
-                              : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                          className={`choice-tile ${
+                            selectedCropId === c.id ? 'active' : ''
                           }`}
                         >
-                          <div className="text-sm font-bold">{c.name}</div>
-                          <div className="text-[11px] opacity-75">{c.variety}</div>
+                          <div className="text-sm">{c.name}</div>
+                          <div className="text-xs text-muted">{c.variety}</div>
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* Generated Row Tracking Code Preview */}
-                <div className="p-4 bg-zinc-950 border border-emerald-500/60 flex items-center justify-between">
-                  <span className="font-mono text-xs text-zinc-400">ROW TRACKING CODE:</span>
-                  <span className="font-mono text-sm font-black text-emerald-400">
-                    PL-1016-{currentPlantField.id}-{currentPlantRow?.code}-
+                <div className="code-box">
+                  <span className="text-xs text-muted">ROW TRACKING CODE:</span>
+                  <strong className="text-accent">
+                    PL-1019-{currentPlantField.id}-{currentPlantRow?.code}-
                     {rowPlantSource === 'from-tray'
                       ? trays.find((t) => t.code === selectedTrayCode)?.cropId || 'CRP'
                       : selectedCropId}
-                  </span>
+                  </strong>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleConfirmPlant}
-                  className="touch-target w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+                  className="btn btn-primary btn-block"
                 >
                   PLANT INTO {currentPlantField.id} • {currentPlantRow?.code}
                 </button>
@@ -985,23 +874,18 @@ export default function App() {
         )}
 
         {/* ============================================================
-            3. MAINTAIN TAB (SELECT ROW -> APP KNOWS WHAT IS IN THERE)
+            3. MAINTAIN TAB
            ============================================================ */}
         {activeTab === 'maintain' && (
-          <div className="max-w-xl mx-auto bg-zinc-900 border border-zinc-800 p-4 sm:p-6 space-y-6">
-            <div className="border-b border-zinc-800 pb-3 flex items-center justify-between">
-              <h1 className="font-mono text-base font-bold uppercase tracking-wider text-amber-400">
-                MAINTENANCE & SPRAY LOG
-              </h1>
-              <span className="font-mono text-xs text-zinc-400">OPERATOR: {operator}</span>
+          <div className="panel panel-narrow stack">
+            <div className="form-header">
+              <strong className="text-mono text-warn">MAINTENANCE & SPRAY LOG</strong>
+              <span className="text-mono text-xs text-muted">OPERATOR: {operator}</span>
             </div>
 
-            {/* Step 1: Select Field & Row */}
             <div>
-              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                1. SELECT FIELD & ROW
-              </label>
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <label className="section-label">1. SELECT FIELD & ROW</label>
+              <div className="grid-3" style={{ marginBottom: 8 }}>
                 {fields.map((f) => (
                   <button
                     key={f.id}
@@ -1010,31 +894,27 @@ export default function App() {
                       setMaintFieldId(f.id);
                       setMaintRowId(f.rows[0]?.id);
                     }}
-                    className={`touch-target p-2.5 font-mono text-xs font-bold border ${
-                      maintFieldId === f.id
-                        ? 'bg-zinc-100 text-zinc-950 border-white'
-                        : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                    className={`choice-tile ${
+                      maintFieldId === f.id ? 'active' : ''
                     }`}
                   >
-                    {f.name}
+                    <span className="text-mono text-xs">{f.name}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid-5">
                 {currentMaintField.rows.map((r) => (
                   <button
                     key={r.id}
                     type="button"
                     onClick={() => setMaintRowId(r.id)}
-                    className={`touch-target p-2 font-mono text-xs font-bold border flex flex-col items-center justify-center ${
-                      maintRowId === r.id
-                        ? 'bg-amber-500 text-zinc-950 border-amber-400'
-                        : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                    className={`choice-tile ${
+                      maintRowId === r.id ? 'active-warn' : ''
                     }`}
                   >
-                    <span>{r.code}</span>
-                    <span className="text-[10px] font-normal truncate max-w-full opacity-80">
+                    <span className="text-mono text-xs">{r.code}</span>
+                    <span className="text-xs">
                       {r.planting ? r.planting.cropName : 'Empty'}
                     </span>
                   </button>
@@ -1042,55 +922,47 @@ export default function App() {
               </div>
             </div>
 
-            {/* AUTO-DETECTED CROP & TRACKING CODE IN THIS ROW */}
-            <div className="p-4 bg-zinc-950 border-l-4 border-amber-500 space-y-1">
-              <div className="font-mono text-[11px] uppercase tracking-wider text-zinc-400">
+            <div className="callout callout-warn stack-sm">
+              <div className="text-mono text-xs text-muted">
                 AUTO-DETECTED IN {currentMaintField.id} • {currentMaintRow?.code}:
               </div>
               {currentMaintRow?.planting ? (
                 <>
-                  <div className="text-lg font-extrabold text-zinc-100">
+                  <div className="text-lg">
                     {currentMaintRow.planting.cropName} — {currentMaintRow.planting.variety}
                   </div>
-                  <div className="font-mono text-xs text-emerald-400">
+                  <div className="text-mono text-xs text-accent">
                     Tracking Code: {currentMaintRow.planting.trackingCode} (Source:{' '}
                     {currentMaintRow.planting.sourceTrayCode})
                   </div>
                 </>
               ) : (
-                <div className="text-sm font-mono text-zinc-400">
+                <div className="text-mono text-xs text-muted">
                   Empty / Unplanted Row (Logs as Pre-Planting Bed Prep)
                 </div>
               )}
             </div>
 
-            {/* Step 2: Select Spray / Maintenance Action */}
             <div>
-              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                2. SELECT SPRAY / INPUT / ACTION
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <label className="section-label">2. SELECT SPRAY / INPUT / ACTION</label>
+              <div className="grid-2">
                 {MAINTENANCE_INPUTS.map((inp) => (
                   <button
                     key={inp.id}
                     type="button"
                     onClick={() => setSelectedInputId(inp.id)}
-                    className={`touch-target p-3 border text-left flex items-center justify-between ${
-                      selectedInputId === inp.id
-                        ? 'bg-zinc-100 text-zinc-950 border-white'
-                        : 'bg-zinc-950 text-zinc-200 border-zinc-800'
+                    className={`choice-tile choice-row ${
+                      selectedInputId === inp.id ? 'active' : ''
                     }`}
                   >
                     <div>
-                      <div className="font-bold text-sm">{inp.name}</div>
-                      <div className="font-mono text-[11px] opacity-75">
+                      <div className="text-sm">{inp.name}</div>
+                      <div className="text-mono text-xs text-muted">
                         {inp.type} • {inp.rate}
                       </div>
                     </div>
                     {inp.whpDays > 0 && (
-                      <span className="px-2 py-0.5 bg-red-600 text-white font-mono text-[10px] font-bold">
-                        {inp.whpDays}D LOCK
-                      </span>
+                      <span className="badge badge-danger">{inp.whpDays}D LOCK</span>
                     )}
                   </button>
                 ))}
@@ -1100,7 +972,7 @@ export default function App() {
             <button
               type="button"
               onClick={handleConfirmMaintain}
-              className="touch-target w-full py-4 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+              className="btn btn-warn btn-block"
             >
               LOG MAINTENANCE ON {currentMaintField.id} • {currentMaintRow?.code}
             </button>
@@ -1108,23 +980,18 @@ export default function App() {
         )}
 
         {/* ============================================================
-            4. HARVEST TAB (SELECT ROW -> AUTO-CHECKS CROP & WHP LOCK)
+            4. HARVEST TAB
            ============================================================ */}
         {activeTab === 'harvest' && (
-          <div className="max-w-xl mx-auto bg-zinc-900 border border-zinc-800 p-4 sm:p-6 space-y-6">
-            <div className="border-b border-zinc-800 pb-3 flex items-center justify-between">
-              <h1 className="font-mono text-base font-bold uppercase tracking-wider text-emerald-400">
-                HARVEST LOG
-              </h1>
-              <span className="font-mono text-xs text-zinc-400">OPERATOR: {operator}</span>
+          <div className="panel panel-narrow stack">
+            <div className="form-header">
+              <strong className="text-mono text-accent">HARVEST LOG</strong>
+              <span className="text-mono text-xs text-muted">OPERATOR: {operator}</span>
             </div>
 
-            {/* Step 1: Select Field & Row */}
             <div>
-              <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
-                1. SELECT FIELD & ROW TO HARVEST
-              </label>
-              <div className="grid grid-cols-3 gap-2 mb-2">
+              <label className="section-label">1. SELECT FIELD & ROW TO HARVEST</label>
+              <div className="grid-3" style={{ marginBottom: 8 }}>
                 {fields.map((f) => (
                   <button
                     key={f.id}
@@ -1133,37 +1000,36 @@ export default function App() {
                       setHarvFieldId(f.id);
                       setHarvRowId(f.rows[0]?.id);
                     }}
-                    className={`touch-target p-2.5 font-mono text-xs font-bold border ${
-                      harvFieldId === f.id
-                        ? 'bg-zinc-100 text-zinc-950 border-white'
-                        : 'bg-zinc-950 text-zinc-400 border-zinc-800'
+                    className={`choice-tile ${
+                      harvFieldId === f.id ? 'active' : ''
                     }`}
                   >
-                    {f.name}
+                    <span className="text-mono text-xs">{f.name}</span>
                   </button>
                 ))}
               </div>
 
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid-5">
                 {currentHarvField.rows.map((r) => {
                   const locked = Boolean(r.whpLockedUntil);
+                  const isSelected = harvRowId === r.id;
                   return (
                     <button
                       key={r.id}
                       type="button"
                       onClick={() => setHarvRowId(r.id)}
-                      className={`touch-target p-2 font-mono text-xs font-bold border flex flex-col items-center justify-center ${
-                        harvRowId === r.id
+                      className={`choice-tile ${
+                        isSelected
                           ? locked
-                            ? 'bg-red-600 text-white border-red-400'
-                            : 'bg-emerald-500 text-zinc-950 border-emerald-400'
+                            ? 'active-locked'
+                            : 'active-accent'
                           : locked
-                          ? 'bg-red-950/60 text-red-300 border-red-800'
-                          : 'bg-zinc-950 text-zinc-300 border-zinc-800'
+                          ? 'locked'
+                          : ''
                       }`}
                     >
-                      <span>{r.code}</span>
-                      <span className="text-[10px] font-normal truncate max-w-full">
+                      <span className="text-mono text-xs">{r.code}</span>
+                      <span className="text-xs">
                         {locked ? 'LOCKED' : r.planting ? r.planting.cropName : 'Empty'}
                       </span>
                     </button>
@@ -1172,102 +1038,97 @@ export default function App() {
               </div>
             </div>
 
-            {/* Step 2: Auto-Detected Crop & WHP Safety Status */}
             {currentHarvRow?.whpLockedUntil ? (
-              <div className="p-4 bg-red-950 border-2 border-red-500 space-y-2">
-                <div className="flex items-center gap-2 font-mono text-xs font-black uppercase text-red-300">
-                  <ShieldAlert className="w-5 h-5 text-red-400 shrink-0" />
-                  <span>HARVEST BLOCKED — ACTIVE SPRAY WITHHOLDING PERIOD</span>
+              <div className="callout callout-danger stack-sm">
+                <div className="row-item-main text-mono text-xs text-danger">
+                  <ShieldAlert size={18} />
+                  <strong>HARVEST BLOCKED — ACTIVE SPRAY WITHHOLDING PERIOD</strong>
                 </div>
-                <div className="text-sm text-zinc-100">
+                <div className="text-sm">
                   <strong>
                     {currentHarvField.name} • {currentHarvRow.code} (
                     {currentHarvRow.planting?.cropName})
                   </strong>{' '}
                   was sprayed with <strong>{currentHarvRow.lastInput}</strong>.
                 </div>
-                <div className="font-mono text-xs text-amber-300">
+                <div className="text-mono text-xs text-warn">
                   SAFE TO HARVEST ON: {currentHarvRow.whpLockedUntil}
                 </div>
               </div>
             ) : !currentHarvRow?.planting ? (
-              <div className="p-4 bg-zinc-950 border border-zinc-800 font-mono text-xs text-zinc-400">
+              <div className="callout text-mono text-xs text-muted">
                 No active crop planted in {currentHarvField.id} • {currentHarvRow?.code}. Select a
                 planted row above.
               </div>
             ) : (
               <>
-                <div className="p-4 bg-zinc-950 border-l-4 border-emerald-500 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[11px] uppercase text-zinc-400">
+                <div className="callout stack-sm">
+                  <div className="row-item-main" style={{ justifyContent: 'space-between' }}>
+                    <span className="text-mono text-xs text-muted">
                       HARVESTING FROM {currentHarvField.id} • {currentHarvRow.code}:
                     </span>
-                    <span className="font-mono text-[11px] font-bold text-emerald-400">
-                      ✓ WHP CLEARED
-                    </span>
+                    <span className="text-mono text-xs text-accent">✓ WHP CLEARED</span>
                   </div>
-                  <div className="text-lg font-extrabold text-zinc-100">
+                  <div className="text-lg">
                     {currentHarvRow.planting.cropName} ({currentHarvRow.planting.variety})
                   </div>
-                  <div className="font-mono text-xs text-zinc-400">
+                  <div className="text-mono text-xs text-muted">
                     Row Code: {currentHarvRow.planting.trackingCode} ←{' '}
                     {currentHarvRow.planting.sourceTrayCode}
                   </div>
                 </div>
 
-                {/* Quantity Stepper */}
                 <div>
-                  <label className="block font-mono text-xs uppercase text-zinc-400 mb-2">
+                  <label className="section-label">
                     2. QUANTITY ({currentHarvRow.planting.unit.toUpperCase()})
                   </label>
-                  <div className="flex items-center gap-2">
+                  <div className="stepper">
                     <button
                       type="button"
                       onClick={() => setHarvQty((q) => Math.max(1, q - 5))}
-                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                      className="btn"
                     >
                       -5
                     </button>
                     <button
                       type="button"
                       onClick={() => setHarvQty((q) => Math.max(1, q - 1))}
-                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                      className="btn"
                     >
                       -1
                     </button>
-                    <div className="touch-target flex-1 bg-zinc-950 border border-zinc-700 flex items-center justify-center font-mono text-xl font-black text-emerald-400">
+                    <div className="stepper-display">
                       {harvQty} {currentHarvRow.planting.unit}
                     </div>
                     <button
                       type="button"
                       onClick={() => setHarvQty((q) => q + 1)}
-                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                      className="btn"
                     >
                       +1
                     </button>
                     <button
                       type="button"
                       onClick={() => setHarvQty((q) => q + 5)}
-                      className="touch-target px-4 bg-zinc-950 border border-zinc-700 font-mono font-bold"
+                      className="btn"
                     >
                       +5
                     </button>
                   </div>
                 </div>
 
-                {/* Auto-generated Harvest Batch Code */}
-                <div className="p-4 bg-zinc-950 border border-emerald-500/60 flex items-center justify-between">
-                  <span className="font-mono text-xs text-zinc-400">HARVEST BATCH CODE:</span>
-                  <span className="font-mono text-sm font-black text-emerald-400">
-                    HV-1016-{currentHarvField.id}-{currentHarvRow.code}-
+                <div className="code-box">
+                  <span className="text-xs text-muted">HARVEST BATCH CODE:</span>
+                  <strong className="text-accent">
+                    HV-1019-{currentHarvField.id}-{currentHarvRow.code}-
                     {currentHarvRow.planting.cropId}
-                  </span>
+                  </strong>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleConfirmHarvest}
-                  className="touch-target w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-mono font-black text-sm uppercase tracking-wider"
+                  className="btn btn-primary btn-block"
                 >
                   LOG HARVEST ({harvQty} {currentHarvRow.planting.unit})
                 </button>
@@ -1277,22 +1138,17 @@ export default function App() {
         )}
       </main>
 
-      {/* ============================================================
-          MOBILE BOTTOM NAVIGATION BAR (4 SHARP TABS)
-         ============================================================ */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-zinc-950 border-t border-zinc-800 grid grid-cols-4">
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <nav className="bottom-nav">
         {navTabs.map((t) => {
           const Icon = t.icon;
-          const active = activeTab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`h-14 flex flex-col items-center justify-center gap-1 border-r border-zinc-800 last:border-r-0 font-mono text-[11px] font-bold tracking-wider ${
-                active ? 'bg-emerald-500 text-zinc-950' : 'text-zinc-400'
-              }`}
+              className={`nav-tab ${activeTab === t.id ? 'active' : ''}`}
             >
-              <Icon className="w-4 h-4" />
+              <Icon size={16} />
               <span>{t.label}</span>
             </button>
           );
