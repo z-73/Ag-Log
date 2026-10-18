@@ -3,14 +3,14 @@
    ========================================================================== */
 :root {
   /* Backgrounds & Surfaces */
-  --bg-main: #304b40;
-  --bg-panel: #253a31;
-  --bg-elevated: #565679;
-  --bg-input: #304b40;
+  --bg-main: #2f4d3b;
+  --bg-panel: #21362a;
+  --bg-elevated: #2f4d3b;
+  --bg-input: #19291f;
 
   /* Borders */
-  --border-color: #000000;
-  --border-strong: #ffffff;
+  --border-color: #27272a;
+  --border-strong: #3f3f46;
 
   /* Text */
   --text-main: #f4f4f5;
@@ -21,14 +21,14 @@
   /* Primary Accent (Plant / Harvest / Active Selection) */
   --accent: #10b981;
   --accent-hover: #34d399;
-  --accent-surface: rgba(16, 185, 129, 0.12);
+  --accent-surface: rgba(16, 185, 129, 0.14);
 
   /* Secondary / Warning Accent (Maintenance / Sprays) */
   --warn: #f59e0b;
   --warn-hover: #fbbf24;
-  --warn-surface: rgba(245, 158, 11, 0.12);
+  --warn-surface: rgba(245, 158, 11, 0.14);
 
-  /* Danger / Lockout Accent (WHP Lockout) */
+  /* Danger Accent */
   --danger: #ef4444;
   --danger-hover: #f87171;
   --danger-surface: rgba(239, 68, 68, 0.15);
@@ -231,7 +231,7 @@ button {
 }
 
 /* ==========================================================================
-   4. PANELS, LISTS & CARDS
+   4. PANELS, LISTS & ROWS x COLUMNS PATCH OVERVIEW GRID
    ========================================================================== */
 .stack {
   display: flex;
@@ -251,9 +251,9 @@ button {
 }
 
 .panel-narrow {
-  max-width: 580px;
+  max-width: 620px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 16px;
 }
 
 .panel-header {
@@ -261,9 +261,14 @@ button {
   background: var(--bg-main);
   border-bottom: 1px solid var(--border-color);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+}
+
+.panel-body {
+  padding: 16px;
 }
 
 .form-header {
@@ -284,6 +289,87 @@ button {
   color: var(--text-muted);
   margin-bottom: 8px;
   letter-spacing: 0.04em;
+}
+
+/* Dynamic Rows x Columns Overview Grid */
+.row-matrix {
+  display: grid;
+  gap: 6px;
+}
+
+.row-cell {
+  min-height: 44px;
+  padding: 8px 12px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+.row-cell:hover {
+  background: var(--btn-hover);
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+
+.row-cell.planted {
+  background: var(--accent-surface);
+  border-color: var(--accent);
+  color: var(--text-main);
+}
+
+.row-cell.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-inverse);
+  font-weight: 900;
+}
+
+.row-cell-code {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.row-cell-crop {
+  font-size: 11px;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dim-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.dim-input {
+  width: 56px;
+  height: 32px;
+  text-align: center;
+  background: var(--bg-input);
+  border: 1px solid var(--border-strong);
+  color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.dim-input:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .divider-list > * + * {
@@ -310,13 +396,13 @@ button {
 
 .row-actions {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  align-self: flex-end;
 }
 
 /* ==========================================================================
-   5. GENERIC BUTTONS, TILES & INPUTS
+   5. GENERIC BUTTONS, DROPDOWNS, TILES & INPUTS
    ========================================================================== */
 .btn {
   min-height: 38px;
@@ -378,18 +464,32 @@ button {
   border-color: var(--warn-hover);
 }
 
-.btn-danger {
-  background: var(--danger-surface);
-  color: var(--danger);
-  border-color: var(--danger);
-}
-
-.btn-danger:hover {
-  background: var(--danger);
+/* Dropdown Selectors for Patch & Row */
+.select-field {
+  width: 100%;
+  min-height: var(--touch-height);
+  padding: 0 14px;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-strong);
   color: var(--text-main);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
-/* Selectable Option Tiles (Fields, Rows, Crops, Sprays) */
+.select-field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.select-field option {
+  background-color: var(--bg-panel);
+  color: var(--text-main);
+  padding: 8px;
+}
+
+/* Selectable Option Tiles (Crops, Sprays, Modes) */
 .choice-tile {
   min-height: var(--touch-height);
   padding: 10px 12px;
@@ -433,18 +533,6 @@ button {
   font-weight: 700;
 }
 
-.choice-tile.locked {
-  background: var(--danger-surface);
-  color: var(--danger);
-  border-color: var(--danger);
-}
-
-.choice-tile.active-locked {
-  background: var(--danger);
-  color: var(--text-main);
-  border-color: var(--danger);
-}
-
 .choice-row {
   flex-direction: row;
   align-items: center;
@@ -468,6 +556,7 @@ button {
 
 .stepper {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }
@@ -503,13 +592,6 @@ button {
   color: var(--text-main);
 }
 
-.badge-row {
-  width: 48px;
-  height: 36px;
-  font-size: 12px;
-  flex-shrink: 0;
-}
-
 .badge-accent {
   background: var(--accent-surface);
   border-color: var(--accent);
@@ -522,12 +604,6 @@ button {
   color: var(--warn);
 }
 
-.badge-danger {
-  background: var(--danger);
-  border-color: var(--danger);
-  color: var(--text-main);
-}
-
 .callout {
   padding: 14px 16px;
   background: var(--bg-input);
@@ -537,11 +613,6 @@ button {
 
 .callout-warn {
   border-left-color: var(--warn);
-}
-
-.callout-danger {
-  background: var(--danger-surface);
-  border: 2px solid var(--danger);
 }
 
 .code-box {
@@ -586,12 +657,6 @@ button {
   gap: 8px;
 }
 
-.grid-5 {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-}
-
 .text-mono {
   font-family: var(--font-mono);
 }
@@ -606,10 +671,6 @@ button {
 
 .text-warn {
   color: var(--warn);
-}
-
-.text-danger {
-  color: var(--danger);
 }
 
 .text-xs {
@@ -643,13 +704,13 @@ button {
   .main-container {
     padding: 24px 20px 48px;
   }
+  .panel-narrow {
+    padding: 24px;
+  }
   .row-item {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
-  }
-  .row-actions {
-    align-self: center;
   }
   .grid-4 {
     grid-template-columns: repeat(4, 1fr);
